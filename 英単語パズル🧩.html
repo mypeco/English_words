@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eigo Puzzle - 英語スペルパズル</title>
+    
+    <!-- Google Fonts (丸文字でかわいく) -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            touch-action: manipulation; /* ダブルタップズーム防止 */
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* アニメーション用 */
+        @keyframes spin-in {
+            from { transform: rotate(-180deg) scale(0); opacity: 0; }
+            to { transform: rotate(0) scale(1); opacity: 1; }
+        }
+        .animate-spin-in {
+            animation: spin-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        /* 新しいキラキラアニメーション（止まっていて、時々光る） */
+        @keyframes shine {
+            0%, 80% { transform: scale(1); filter: brightness(100%) drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+            85% { transform: scale(1.2) rotate(-5deg); filter: brightness(130%) drop-shadow(0 0 5px rgba(255,215,0,0.6)); }
+            90% { transform: scale(1.2) rotate(5deg); filter: brightness(130%) drop-shadow(0 0 5px rgba(255,215,0,0.6)); }
+            100% { transform: scale(1); filter: brightness(100%) drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
+        }
+        .animate-shine {
+            animation: shine 4s infinite; /* 4秒に1回キラッとする */
+            display: inline-block;
+        }
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* ルビの調整 */
+        ruby {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+        }
+        rt {
+            font-size: 0.6em;
+            font-weight: normal;
+            color: #f1f5f9; /* slate-100 (白抜き文字の上なので明るく) */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <!-- アプリ描画エリア -->
+    <div id="app" class="min-h-screen flex flex-col"></div>
+
+    <script>
+        // --- 1. データ定義 (全28カテゴリ) ---
+        // カテゴリ名をひらがな・カタカナに統一し、色をグループに合わせて調整
+        
+        const DATA = {
+            // --- Group 1: 👑 はじめよう (Basics) [暖色系: Orange/Yellow/Pink] ---
+            num1: { id: 'num1', label: 'すうじ① (1-10)', color: 'from-orange-400 to-amber-500', words: [ { en: 'one', jp: '1', emoji: '1️⃣' }, { en: 'two', jp: '2', emoji: '2️⃣' }, { en: 'three', jp: '3', emoji: '3️⃣' }, { en: 'four', jp: '4', emoji: '4️⃣' }, { en: 'five', jp: '5', emoji: '5️⃣' }, { en: 'six', jp: '6', emoji: '6️⃣' }, { en: 'seven', jp: '7', emoji: '7️⃣' }, { en: 'eight', jp: '8', emoji: '8️⃣' }, { en: 'nine', jp: '9', emoji: '9️⃣' }, { en: 'ten', jp: '10', emoji: '🔟' } ] },
+            colors: { id: 'colors', label: 'いろ (Colors)', color: 'from-amber-400 to-yellow-500', words: [ { en: 'red', jp: '<ruby>赤<rt>あか</rt></ruby>', emoji: '🔴' }, { en: 'blue', jp: '<ruby>青<rt>あお</rt></ruby>', emoji: '🔵' }, { en: 'yellow', jp: '<ruby>黄<rt>きいろ</rt></ruby>', emoji: '🟡' }, { en: 'green', jp: '<ruby>緑<rt>みどり</rt></ruby>', emoji: '🟢' }, { en: 'orange', jp: 'オレンジ', emoji: '🟠' }, { en: 'pink', jp: 'ピンク', emoji: '💗' }, { en: 'purple', jp: '<ruby>紫<rt>むらさき</rt></ruby>', emoji: '🟣' }, { en: 'black', jp: '<ruby>黒<rt>くろ</rt></ruby>', emoji: '⚫' }, { en: 'white', jp: '<ruby>白<rt>しろ</rt></ruby>', emoji: '⚪' }, { en: 'brown', jp: '<ruby>茶色<rt>ちゃいろ</rt></ruby>', emoji: '🟤' }, { en: 'gold', jp: '<ruby>金<rt>きん</rt></ruby>', emoji: '🥇' }, { en: 'silver', jp: '<ruby>銀<rt>ぎん</rt></ruby>', emoji: '🥈' } ] },
+            animals: { id: 'animals', label: 'どうぶつ (Animals)', color: 'from-yellow-400 to-lime-500', words: [ { en: 'dog', jp: '<ruby>犬<rt>いぬ</rt></ruby>', emoji: '🐶' }, { en: 'cat', jp: '<ruby>猫<rt>ねこ</rt></ruby>', emoji: '🐱' }, { en: 'rabbit', jp: 'ウサギ', emoji: '🐰' }, { en: 'bird', jp: '<ruby>鳥<rt>とり</rt></ruby>', emoji: '🐦' }, { en: 'fish', jp: '<ruby>魚<rt>さかな</rt></ruby>', emoji: '🐟' }, { en: 'bear', jp: 'クマ', emoji: '🐻' }, { en: 'lion', jp: 'ライオン', emoji: '🦁' }, { en: 'tiger', jp: 'トラ', emoji: '🐯' }, { en: 'elephant', jp: 'ゾウ', emoji: '🐘' }, { en: 'monkey', jp: 'サル', emoji: '🐵' }, { en: 'panda', jp: 'パンダ', emoji: '🐼' }, { en: 'horse', jp: 'ウマ', emoji: '🐴' }, { en: 'cow', jp: 'ウシ', emoji: '🐮' }, { en: 'pig', jp: 'ブタ', emoji: '🐷' } ] },
+            food: { id: 'food', label: 'たべもの (Food)', color: 'from-lime-500 to-green-500', words: [ { en: 'apple', jp: 'リンゴ', emoji: '🍎' }, { en: 'banana', jp: 'バナナ', emoji: '🍌' }, { en: 'orange', jp: 'オレンジ', emoji: '🍊' }, { en: 'grape', jp: 'ブドウ', emoji: '🍇' }, { en: 'peach', jp: 'モモ', emoji: '🍑' }, { en: 'rice', jp: '<ruby>ご飯<rt>はん</rt></ruby>', emoji: '🍚' }, { en: 'bread', jp: 'パン', emoji: '🍞' }, { en: 'egg', jp: '<ruby>卵<rt>たまご</rt></ruby>', emoji: '🥚' }, { en: 'curry', jp: 'カレー', emoji: '🍛' }, { en: 'hamburger', jp: 'ハンバーガー', emoji: '🍔' }, { en: 'pizza', jp: 'ピザ', emoji: '🍕' }, { en: 'cake', jp: 'ケーキ', emoji: '🍰' }, { en: 'ice cream', jp: 'アイスクリーム', emoji: '🍦' } ] },
+            family: { id: 'family', label: 'かぞく (Family)', color: 'from-pink-400 to-rose-500', words: [ { en: 'family', jp: '<ruby>家族<rt>かぞく</rt></ruby>', emoji: '👨‍👩‍👧‍👦' }, { en: 'father', jp: '<ruby>父<rt>ちち</rt></ruby>', emoji: '👨' }, { en: 'mother', jp: '<ruby>母<rt>はは</rt></ruby>', emoji: '👩' }, { en: 'brother', jp: '<ruby>兄<rt>あに</rt></ruby>・<ruby>弟<rt>おとうと</rt></ruby>', emoji: '👦' }, { en: 'sister', jp: '<ruby>姉<rt>あね</rt></ruby>・<ruby>妹<rt>いもうと</rt></ruby>', emoji: '👧' }, { en: 'grandfather', jp: '<ruby>祖父<rt>そふ</rt></ruby>', emoji: '👴' }, { en: 'grandmother', jp: '<ruby>祖母<rt>そぼ</rt></ruby>', emoji: '👵' } ] },
+            adj2: { id: 'adj2', label: 'きもち (Feelings)', color: 'from-rose-400 to-red-500', words: [ { en: 'happy', jp: '<ruby>幸<rt>しあわ</rt></ruby>せ', emoji: '😄' }, { en: 'sad', jp: '<ruby>悲<rt>かな</rt></ruby>しい', emoji: '😢' }, { en: 'nice', jp: '<ruby>素敵<rt>すてき</rt></ruby>', emoji: '👍' }, { en: 'good', jp: '<ruby>良<rt>よ</rt></ruby>い', emoji: '👌' }, { en: 'fun', jp: '<ruby>楽<rt>たの</rt></ruby>しい', emoji: '😆' }, { en: 'cute', jp: 'かわいい', emoji: '🎀' }, { en: 'beautiful', jp: '<ruby>美<rt>うつく</rt></ruby>しい', emoji: '🌹' }, { en: 'kind', jp: '<ruby>親切<rt>しんせつ</rt></ruby>', emoji: '🤝' }, { en: 'easy', jp: '<ruby>簡単<rt>かんたん</rt></ruby>', emoji: '⭕' }, { en: 'hard', jp: '<ruby>難<rt>むずか</rt></ruby>しい', emoji: '🧱' } ] },
+
+            // --- Group 2: 📅 カレンダーと時間 (Time) [寒色系: Sky/Blue/Indigo] ---
+            days: { id: 'days', label: 'ようび (Days)', color: 'from-sky-400 to-blue-500', words: [ { en: 'Sunday', jp: '<ruby>日曜日<rt>にちようび</rt></ruby>', emoji: '☀️' }, { en: 'Monday', jp: '<ruby>月曜日<rt>げつようび</rt></ruby>', emoji: '🌙' }, { en: 'Tuesday', jp: '<ruby>火曜日<rt>かようび</rt></ruby>', emoji: '🔥' }, { en: 'Wednesday', jp: '<ruby>水曜日<rt>すいようび</rt></ruby>', emoji: '💧' }, { en: 'Thursday', jp: '<ruby>木曜日<rt>もくようび</rt></ruby>', emoji: '🌳' }, { en: 'Friday', jp: '<ruby>金曜日<rt>きんようび</rt></ruby>', emoji: '✨' }, { en: 'Saturday', jp: '<ruby>土曜日<rt>どようび</rt></ruby>', emoji: '⛰️' } ] },
+            months: { id: 'months', label: 'つき (Months)', color: 'from-blue-400 to-indigo-500', words: [ { en: 'January', jp: '<ruby>1月<rt>がつ</rt></ruby>', emoji: '🎍' }, { en: 'February', jp: '<ruby>2月<rt>がつ</rt></ruby>', emoji: '👹' }, { en: 'March', jp: '<ruby>3月<rt>がつ</rt></ruby>', emoji: '🎎' }, { en: 'April', jp: '<ruby>4月<rt>がつ</rt></ruby>', emoji: '🌸' }, { en: 'May', jp: '<ruby>5月<rt>がつ</rt></ruby>', emoji: '🎏' }, { en: 'June', jp: '<ruby>6月<rt>がつ</rt></ruby>', emoji: '☔' }, { en: 'July', jp: '<ruby>7月<rt>がつ</rt></ruby>', emoji: '🎋' }, { en: 'August', jp: '<ruby>8月<rt>がつ</rt></ruby>', emoji: '🌻' }, { en: 'September', jp: '<ruby>9月<rt>がつ</rt></ruby>', emoji: '🎑' }, { en: 'October', jp: '<ruby>10月<rt>がつ</rt></ruby>', emoji: '🎃' }, { en: 'November', jp: '<ruby>11月<rt>がつ</rt></ruby>', emoji: '🍂' }, { en: 'December', jp: '<ruby>12月<rt>がつ</rt></ruby>', emoji: '🎄' } ] },
+            seasons: { id: 'seasons', label: 'きせつ (Seasons)', color: 'from-indigo-400 to-violet-500', words: [ { en: 'spring', jp: '<ruby>春<rt>はる</rt></ruby>', emoji: '🌸' }, { en: 'summer', jp: '<ruby>夏<rt>なつ</rt></ruby>', emoji: '🌻' }, { en: 'autumn', jp: '<ruby>秋<rt>あき</rt></ruby>', emoji: '🍁' }, { en: 'winter', jp: '<ruby>冬<rt>ふゆ</rt></ruby>', emoji: '⛄' } ] },
+            time1: { id: 'time1', label: 'じかん① (Time 1)', color: 'from-violet-400 to-purple-500', words: [ { en: 'time', jp: '<ruby>時間<rt>じかん</rt></ruby>', emoji: '⏰' }, { en: 'year', jp: '<ruby>年<rt>ねん</rt></ruby>', emoji: '📅' }, { en: 'month', jp: '<ruby>月<rt>つき</rt></ruby>', emoji: '🗓️' }, { en: 'minute', jp: '<ruby>分<rt>ふん</rt></ruby>', emoji: '⏱️' }, { en: 'morning', jp: '<ruby>朝<rt>あさ</rt></ruby>', emoji: '🌅' }, { en: 'afternoon', jp: '<ruby>昼<rt>ひる</rt></ruby>・<ruby>午後<rt>ごご</rt></ruby>', emoji: '☀️' }, { en: 'evening', jp: '<ruby>夕方<rt>ゆうがた</rt></ruby>', emoji: '🌇' }, { en: 'night', jp: '<ruby>夜<rt>よる</rt></ruby>', emoji: '🌙' } ] },
+            time2: { id: 'time2', label: 'じかん② (Time 2)', color: 'from-purple-400 to-fuchsia-500', words: [ { en: 'today', jp: '<ruby>今日<rt>きょう</rt></ruby>', emoji: '👇' }, { en: 'tomorrow', jp: '<ruby>明日<rt>あした</rt></ruby>', emoji: '➡️' }, { en: 'yesterday', jp: '<ruby>昨日<rt>きのう</rt></ruby>', emoji: '⬅️' }, { en: 'now', jp: '<ruby>今<rt>いま</rt></ruby>', emoji: '⏱️' }, { en: 'always', jp: 'いつも', emoji: '🔁' }, { en: 'usually', jp: 'たいてい', emoji: '😌' }, { en: 'sometimes', jp: '<ruby>時々<rt>ときどき</rt></ruby>', emoji: '🤔' }, { en: 'never', jp: '<ruby>決<rt>けっ</rt></ruby>して～ない', emoji: '🙅' } ] },
+
+            // --- Group 3: 🏫 学校と生活 (School & Life) [緑/Teal系] ---
+            school1: { id: 'school1', label: 'がっこう① (School 1)', color: 'from-teal-400 to-emerald-500', words: [ { en: 'school', jp: '<ruby>学校<rt>がっこう</rt></ruby>', emoji: '🏫' }, { en: 'teacher', jp: '<ruby>先生<rt>せんせい</rt></ruby>', emoji: '👨‍🏫' }, { en: 'student', jp: '<ruby>生徒<rt>せいと</rt></ruby>', emoji: '🎒' }, { en: 'friend', jp: '<ruby>友達<rt>ともだち</rt></ruby>', emoji: '🤝' }, { en: 'class', jp: '<ruby>授業<rt>じゅぎょう</rt></ruby>', emoji: '🔔' }, { en: 'classroom', jp: '<ruby>教室<rt>きょうしつ</rt></ruby>', emoji: '🚪' }, { en: 'gym', jp: '<ruby>体育館<rt>たいいくかん</rt></ruby>', emoji: '🏟️' }, { en: 'library', jp: '<ruby>図書室<rt>としょしつ</rt></ruby>', emoji: '📚' } ] },
+            school2: { id: 'school2', label: 'がっこう② (School 2)', color: 'from-emerald-400 to-green-500', words: [ { en: 'notebook', jp: 'ノート', emoji: '📓' }, { en: 'pencil', jp: '<ruby>鉛筆<rt>えんぴつ</rt></ruby>', emoji: '✏️' }, { en: 'eraser', jp: '<ruby>消<rt>け</rt></ruby>しゴム', emoji: '🧼' }, { en: 'pen', jp: 'ペン', emoji: '🖊️' }, { en: 'desk', jp: '<ruby>机<rt>つくえ</rt></ruby>', emoji: '🏫' }, { en: 'chair', jp: '<ruby>椅子<rt>いす</rt></ruby>', emoji: '🪑' }, { en: 'textbook', jp: '<ruby>教科書<rt>きょうかしょ</rt></ruby>', emoji: '📖' }, { en: 'homework', jp: '<ruby>宿題<rt>しゅくだい</rt></ruby>', emoji: '📝' } ] },
+            sports: { id: 'sports', label: 'スポーツ (Sports)', color: 'from-green-400 to-teal-600', words: [ { en: 'baseball', jp: '<ruby>野球<rt>やきゅう</rt></ruby>', emoji: '⚾' }, { en: 'soccer', jp: 'サッカー', emoji: '⚽' }, { en: 'basketball', jp: 'バスケットボール', emoji: '🏀' }, { en: 'tennis', jp: 'テニス', emoji: '🎾' }, { en: 'volleyball', jp: 'バレーボール', emoji: '🏐' }, { en: 'swimming', jp: '<ruby>水泳<rt>すいえい</rt></ruby>', emoji: '🏊' }, { en: 'badminton', jp: 'バドミントン', emoji: '🏸' }, { en: 'dance', jp: 'ダンス', emoji: '💃' } ] },
+            body: { id: 'body', label: 'からだ (Body)', color: 'from-teal-500 to-cyan-600', words: [ { en: 'head', jp: '<ruby>頭<rt>あたま</rt></ruby>', emoji: '🙆' }, { en: 'face', jp: '<ruby>顔<rt>かお</rt></ruby>', emoji: '☺' }, { en: 'eye', jp: '<ruby>目<rt>め</rt></ruby>', emoji: '👁️' }, { en: 'ear', jp: '<ruby>耳<rt>みみ</rt></ruby>', emoji: '👂' }, { en: 'nose', jp: '<ruby>鼻<rt>はな</rt></ruby>', emoji: '👃' }, { en: 'mouth', jp: '<ruby>口<rt>くち</rt></ruby>', emoji: '👄' }, { en: 'hand', jp: '<ruby>手<rt>て</rt></ruby>', emoji: '✋' }, { en: 'arm', jp: '<ruby>腕<rt>うで</rt></ruby>', emoji: '💪' }, { en: 'leg', jp: '<ruby>脚<rt>あし</rt></ruby>', emoji: '🦵' }, { en: 'foot', jp: '<ruby>足<rt>あし</rt></ruby>', emoji: '🦶' }, { en: 'finger', jp: '<ruby>指<rt>ゆび</rt></ruby>', emoji: '☝️' } ] },
+            clothes: { id: 'clothes', label: 'ふく (Clothes)', color: 'from-cyan-500 to-sky-600', words: [ { en: 'cap', jp: '<ruby>帽子<rt>ぼうし</rt></ruby>・キャップ', emoji: '🧢' }, { en: 'hat', jp: '<ruby>帽子<rt>ぼうし</rt></ruby>・ハット', emoji: '👒' }, { en: 'T-shirt', jp: 'Tシャツ', emoji: '👕' }, { en: 'shirt', jp: 'シャツ', emoji: '👔' }, { en: 'shoes', jp: '<ruby>靴<rt>くつ</rt></ruby>', emoji: '👟' }, { en: 'socks', jp: '<ruby>靴下<rt>くつした</rt></ruby>', emoji: '🧦' }, { en: 'bag', jp: 'カバン', emoji: '🎒' }, { en: 'umbrella', jp: '<ruby>傘<rt>かさ</rt></ruby>', emoji: '☂️' } ] },
+            drinks: { id: 'drinks', label: 'のみもの (Drinks)', color: 'from-sky-500 to-blue-600', words: [ { en: 'milk', jp: '<ruby>牛乳<rt>ぎゅうにゅう</rt></ruby>', emoji: '🥛' }, { en: 'water', jp: '<ruby>水<rt>みず</rt></ruby>', emoji: '💧' }, { en: 'juice', jp: 'ジュース', emoji: '🍹' }, { en: 'tea', jp: '<ruby>お茶<rt>ちゃ</rt></ruby>', emoji: '🍵' }, { en: 'coffee', jp: 'コーヒー', emoji: '☕' } ] },
+
+            // --- Group 4: 🌍 いろいろな言葉 (World & Actions) [Purple/Pink系] ---
+            verbs1: { id: 'verbs1', label: 'うごき① (Verbs 1)', color: 'from-purple-400 to-fuchsia-500', words: [ { en: 'play', jp: '<ruby>遊<rt>あそ</rt></ruby>ぶ・する', emoji: '🎮' }, { en: 'go', jp: '<ruby>行<rt>い</rt></ruby>く', emoji: '🚶' }, { en: 'come', jp: '<ruby>来<rt>く</rt></ruby>る', emoji: '🏃' }, { en: 'swim', jp: '<ruby>泳<rt>およ</rt></ruby>ぐ', emoji: '🏊' }, { en: 'run', jp: '<ruby>走<rt>はし</rt></ruby>る', emoji: '💨' }, { en: 'make', jp: '<ruby>作<rt>つく</rt></ruby>る', emoji: '🔨' }, { en: 'use', jp: '<ruby>使<rt>つか</rt></ruby>う', emoji: '💻' }, { en: 'wash', jp: '<ruby>洗<rt>あら</rt></ruby>う', emoji: '🧼' }, { en: 'clean', jp: '<ruby>掃除<rt>そうじ</rt></ruby>する', emoji: '🧹' } ] },
+            verbs2: { id: 'verbs2', label: 'うごき② (Verbs 2)', color: 'from-fuchsia-400 to-pink-500', words: [ { en: 'eat', jp: '<ruby>食<rt>た</rt></ruby>べる', emoji: '🍽️' }, { en: 'drink', jp: '<ruby>飲<rt>の</rt></ruby>む', emoji: '🥤' }, { en: 'cook', jp: '<ruby>料理<rt>りょうり</rt></ruby>する', emoji: '🍳' }, { en: 'study', jp: '<ruby>勉強<rt>べんきょう</rt></ruby>する', emoji: '✏️' }, { en: 'watch', jp: '<ruby>見<rt>み</rt></ruby>る', emoji: '📺' }, { en: 'listen', jp: '<ruby>聞<rt>き</rt></ruby>く', emoji: '🎧' }, { en: 'like', jp: '<ruby>好<rt>す</rt></ruby>き', emoji: '❤️' }, { en: 'have', jp: '<ruby>持<rt>も</rt></ruby>っている', emoji: '🤲' }, { en: 'want', jp: '<ruby>欲<rt>ほ</rt></ruby>しい', emoji: '🥺' } ] },
+            nature: { id: 'nature', label: 'しぜん (Nature)', color: 'from-pink-400 to-rose-500', words: [ { en: 'sun', jp: '<ruby>太陽<rt>たいよう</rt></ruby>', emoji: '☀️' }, { en: 'moon', jp: '<ruby>月<rt>つき</rt></ruby>', emoji: '🌕' }, { en: 'sky', jp: '<ruby>空<rt>そら</rt></ruby>', emoji: '🌌' }, { en: 'rain', jp: '<ruby>雨<rt>あめ</rt></ruby>', emoji: '☔' }, { en: 'snow', jp: '<ruby>雪<rt>ゆき</rt></ruby>', emoji: '⛄' }, { en: 'cloud', jp: '<ruby>雲<rt>くも</rt></ruby>', emoji: '☁️' }, { en: 'wind', jp: '<ruby>風<rt>かぜ</rt></ruby>', emoji: '🍃' }, { en: 'river', jp: '<ruby>川<rt>かわ</rt></ruby>', emoji: '🏞️' }, { en: 'mountain', jp: '<ruby>山<rt>やま</rt></ruby>', emoji: '⛰️' }, { en: 'sea', jp: '<ruby>海<rt>うみ</rt></ruby>', emoji: '🌊' }, { en: 'flower', jp: '<ruby>花<rt>はな</rt></ruby>', emoji: '🌷' }, { en: 'tree', jp: '<ruby>木<rt>き</rt></ruby>', emoji: '🌳' } ] },
+            life1: { id: 'life1', label: 'せいかつ① (Life 1)', color: 'from-rose-400 to-red-500', words: [ { en: 'house', jp: '<ruby>家<rt>いえ</rt></ruby>', emoji: '🏠' }, { en: 'home', jp: '<ruby>家庭<rt>かてい</rt></ruby>・<ruby>家<rt>うち</rt></ruby>', emoji: '🏡' }, { en: 'room', jp: '<ruby>部屋<rt>へや</rt></ruby>', emoji: '🚪' }, { en: 'kitchen', jp: '<ruby>台所<rt>だいどころ</rt></ruby>', emoji: '🍳' }, { en: 'bath', jp: '<ruby>お風呂<rt>ふろ</rt></ruby>', emoji: '🛁' }, { en: 'park', jp: '<ruby>公園<rt>こうえん</rt></ruby>', emoji: '🏞️' }, { en: 'station', jp: '<ruby>駅<rt>えき</rt></ruby>', emoji: '🚉' }, { en: 'store', jp: '<ruby>店<rt>みせ</rt></ruby>', emoji: '🏪' } ] },
+            life2: { id: 'life2', label: 'せいかつ② (Life 2)', color: 'from-red-400 to-orange-500', words: [ { en: 'bed', jp: 'ベッド', emoji: '🛏️' }, { en: 'computer', jp: 'コンピュータ', emoji: '💻' }, { en: 'TV', jp: 'テレビ', emoji: '📺' }, { en: 'phone', jp: '<ruby>電話<rt>でんわ</rt></ruby>', emoji: '☎️' }, { en: 'money', jp: '<ruby>お金<rt>かね</rt></ruby>', emoji: '💴' }, { en: 'present', jp: 'プレゼント', emoji: '🎁' } ] },
+            countries: { id: 'countries', label: 'くに (Countries)', color: 'from-orange-400 to-amber-500', words: [ { en: 'Japan', jp: '<ruby>日本<rt>にほん</rt></ruby>', emoji: '🇯🇵' }, { en: 'America', jp: 'アメリカ', emoji: '🇺🇸' }, { en: 'Canada', jp: 'カナダ', emoji: '🇨🇦' }, { en: 'Australia', jp: 'オーストラリア', emoji: '🇦🇺' }, { en: 'China', jp: '<ruby>中国<rt>ちゅうごく</rt></ruby>', emoji: '🇨🇳' }, { en: 'Korea', jp: '<ruby>韓国<rt>かんこく</rt></ruby>', emoji: '🇰🇷' }, { en: 'Brazil', jp: 'ブラジル', emoji: '🇧🇷' } ] },
+
+            // --- Group 5: 🔥 チャレンジ (Challenge) [Dark/Rich系] ---
+            num2: { id: 'num2', label: 'すうじ② (11-20)', color: 'from-rose-500 to-pink-600', words: [ { en: 'eleven', jp: '11', emoji: '🕚' }, { en: 'twelve', jp: '12', emoji: '🕛' }, { en: 'thirteen', jp: '13', emoji: '1️⃣3️⃣' }, { en: 'fourteen', jp: '14', emoji: '1️⃣4️⃣' }, { en: 'fifteen', jp: '15', emoji: '1️⃣5️⃣' }, { en: 'sixteen', jp: '16', emoji: '1️⃣6️⃣' }, { en: 'seventeen', jp: '17', emoji: '1️⃣7️⃣' }, { en: 'eighteen', jp: '18', emoji: '1️⃣8️⃣' }, { en: 'nineteen', jp: '19', emoji: '1️⃣9️⃣' }, { en: 'twenty', jp: '20', emoji: '2️⃣0️⃣' } ] },
+            shapes: { id: 'shapes', label: 'かたち (Shapes)', color: 'from-pink-500 to-fuchsia-600', words: [ { en: 'circle', jp: '<ruby>円<rt>えん</rt></ruby>', emoji: '⭕' }, { en: 'triangle', jp: '<ruby>三角形<rt>さんかくけい</rt></ruby>', emoji: '🔺' }, { en: 'square', jp: '<ruby>正方形<rt>せいほうけい</rt></ruby>・<ruby>四角<rt>しかく</rt></ruby>', emoji: '🟥' }, { en: 'star', jp: '<ruby>星<rt>ほし</rt></ruby>', emoji: '⭐' }, { en: 'heart', jp: 'ハート', emoji: '❤️' } ] },
+            order: { id: 'order', label: 'じゅんばん (Order)', color: 'from-fuchsia-500 to-purple-600', words: [ { en: 'first', jp: '<ruby>1番目<rt>ばんめ</rt></ruby>', emoji: '🥇' }, { en: 'second', jp: '<ruby>2番目<rt>ばんめ</rt></ruby>', emoji: '🥈' }, { en: 'third', jp: '<ruby>3番目<rt>ばんめ</rt></ruby>', emoji: '🥉' }, { en: 'fourth', jp: '<ruby>4番目<rt>ばんめ</rt></ruby>', emoji: '4️⃣' }, { en: 'fifth', jp: '<ruby>5番目<rt>ばんめ</rt></ruby>', emoji: '5️⃣' }, { en: 'sixth', jp: '<ruby>6番目<rt>ばんめ</rt></ruby>', emoji: '6️⃣' }, { en: 'seventh', jp: '<ruby>7番目<rt>ばんめ</rt></ruby>', emoji: '7️⃣' }, { en: 'eighth', jp: '<ruby>8番目<rt>ばんめ</rt></ruby>', emoji: '8️⃣' }, { en: 'ninth', jp: '<ruby>9番目<rt>ばんめ</rt></ruby>', emoji: '9️⃣' }, { en: 'tenth', jp: '<ruby>10番目<rt>ばんめ</rt></ruby>', emoji: '🔟' } ] },
+            adj1: { id: 'adj1', label: 'かたち・ようす (State)', color: 'from-purple-500 to-indigo-600', words: [ { en: 'big', jp: '<ruby>大<rt>おお</rt></ruby>きい', emoji: '🐘' }, { en: 'small', jp: '<ruby>小<rt>ちい</rt></ruby>さい', emoji: '🐜' }, { en: 'long', jp: '<ruby>長<rt>なが</rt></ruby>い', emoji: '🐍' }, { en: 'short', jp: '<ruby>短<rt>みじか</rt></ruby>い', emoji: '🐛' }, { en: 'new', jp: '<ruby>新<rt>あたら</rt></ruby>しい', emoji: '✨' }, { en: 'old', jp: '<ruby>古<rt>ふる</rt></ruby>い', emoji: '🏚️' }, { en: 'hot', jp: '<ruby>暑<rt>あつ</rt></ruby>い', emoji: '🥵' }, { en: 'cold', jp: '<ruby>寒<rt>さむ</rt></ruby>い・<ruby>冷<rt>つめ</rt></ruby>たい', emoji: '🥶' } ] },
+            questions: { id: 'questions', label: 'しつもん (Questions)', color: 'from-indigo-500 to-blue-600', words: [ { en: 'what', jp: '<ruby>何<rt>なに</rt></ruby>', emoji: '❓' }, { en: 'who', jp: '<ruby>誰<rt>だれ</rt></ruby>', emoji: '👤' }, { en: 'where', jp: 'どこ', emoji: '📍' }, { en: 'when', jp: 'いつ', emoji: '⏰' }, { en: 'which', jp: 'どちら', emoji: '👈' }, { en: 'how', jp: 'どうやって', emoji: '🛠️' }, { en: 'whose', jp: '<ruby>誰<rt>だれ</rt></ruby>の', emoji: '🏷️' } ] },
+        };
+
+        // --- カテゴリグループ定義（ホーム画面の整理用） ---
+        const CATEGORY_GROUPS = [
+            {
+                title: "👑 はじめよう (Basics)",
+                color: "text-amber-600",
+                bg: "bg-orange-50 border-orange-200",
+                ids: ['num1', 'colors', 'animals', 'food', 'family', 'adj2']
+            },
+            {
+                title: "📅 カレンダーとじかん (Time)",
+                color: "text-blue-600",
+                bg: "bg-blue-50 border-blue-200",
+                ids: ['days', 'months', 'seasons', 'time1', 'time2']
+            },
+            {
+                title: "🏫 がっこうとせいかつ (School & Life)",
+                color: "text-teal-600",
+                bg: "bg-teal-50 border-teal-200",
+                ids: ['school1', 'school2', 'sports', 'body', 'clothes', 'drinks']
+            },
+            {
+                title: "🌍 いろいろなことば (World & Actions)",
+                color: "text-purple-600",
+                bg: "bg-purple-50 border-purple-200",
+                ids: ['verbs1', 'verbs2', 'nature', 'life1', 'life2', 'countries']
+            },
+            {
+                title: "🔥 チャレンジ (Challenge)",
+                color: "text-rose-600",
+                bg: "bg-rose-50 border-rose-200",
+                ids: ['num2', 'shapes', 'order', 'adj1', 'questions']
+            }
+        ];
+
+        const ICON_OPTIONS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁', '🚗', '🚀', '✈️', '🚂', '🚓', '🚑', '⚽', '⚾', '🏀', '🎾', '🍎', '🍓', '🍒', '🍇', '🍉', '☀️', '🌙', '🌟', '❄️', '🌈', '👑', '💎', '🎀', '🎵'];
+        const STAMP_OPTIONS = [
+            '💖', '🎀', '🌸', '🍭', '🦄', '🐰', '🐣', '🦋', '🌷', '🍓',
+            '🔥', '⚡', '🚀', '🦖', '🦁', '🦅', '🐉', '🎮', '⚽', '🏎️',
+            '👑', '💎', '🏆', '💯', '🌟', '🌈', '🎊', '🥇', '🦸', '🧞',
+            '🍔', '🍟', '🍕', '🍜', '🍣', '🍙', '🍰', '🍩', '🍦', '🍪', '🍫',
+            '🐶', '🐱', '🐹', '🦊', '🐼', '🐨', '🐧', '🐢', '🐬', '🐳', '🐘'
+        ];
+        const COLOR_OPTIONS = [
+            { label: 'Blue', class: 'bg-blue-100 text-blue-700' },
+            { label: 'Pink', class: 'bg-pink-100 text-pink-700' },
+            { label: 'Amber', class: 'bg-amber-100 text-amber-700' },
+            { label: 'Green', class: 'bg-green-100 text-green-700' },
+            { label: 'Purple', class: 'bg-purple-100 text-purple-700' },
+            { label: 'Teal', class: 'bg-teal-100 text-teal-700' },
+        ];
+
+        // Version 6 (そのまま使用)
+        const DATA_KEY = 'spelling_game_data_v6';
+        const USERS_KEY = 'spelling_game_users_v6';
+        const HISTORY_LIMIT = 50;
+
+        // --- 2. 状態管理 (Global State) ---
+        
+        let state = {
+            users: [],
+            allUsersData: {},
+            currentUserId: null,
+            screen: 'userSelect', // userSelect, userEdit, home, history, game, result, stampBook, stampSelect
+            isSoundOn: true,
+            
+            // Edit User State
+            editingUser: {}, // { id, name, icon, color }
+
+            // Game State
+            currentCategory: null,
+            questionIndex: 0,
+            poolLetters: [], // { char, id }
+            answerSlots: [], // { char, id } or null
+            isCorrect: false,
+            showHint: false,
+            usedHintInSession: false,
+            hasErrorInSession: false,
+
+            // Result State
+            resultInfo: null // { isPerfect, canGetStamp }
+        };
+
+        // --- 3. 音声・効果音エンジン ---
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = new AudioContext();
+
+        function initAudio() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(type) {
+            if (!state.isSoundOn) return;
+            initAudio();
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            switch (type) {
+                case 'tap':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                    break;
+                case 'remove':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                case 'hint':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+                case 'correct':
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); 
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); 
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); 
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                    osc.start(now);
+                    osc.stop(now + 0.6);
+                    break;
+                case 'error':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                    break;
+                case 'complete': // 通常クリア
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); 
+                    osc.frequency.setValueAtTime(659.25, now + 0.15); 
+                    osc.frequency.setValueAtTime(783.99, now + 0.30); 
+                    osc.frequency.setValueAtTime(1046.50, now + 0.45); 
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.8);
+                    osc.start(now);
+                    osc.stop(now + 0.8);
+                    break;
+                case 'perfect': // パーフェクト
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(523.25, now); 
+                    osc.frequency.setValueAtTime(523.25, now + 0.12); 
+                    osc.frequency.setValueAtTime(523.25, now + 0.24); 
+                    osc.frequency.setValueAtTime(783.99, now + 0.36); 
+                    osc.frequency.setValueAtTime(659.25, now + 0.60); 
+                    osc.frequency.setValueAtTime(783.99, now + 0.72); 
+                    osc.frequency.setValueAtTime(1046.50, now + 0.84); 
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 2.0);
+                    osc.start(now);
+                    osc.stop(now + 2.0);
+                    break;
+                case 'crown': // スタンプゲット
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1046.50, now); 
+                    osc.frequency.setValueAtTime(1318.51, now + 0.1); 
+                    osc.frequency.setValueAtTime(1567.98, now + 0.2); 
+                    osc.frequency.setValueAtTime(2093.00, now + 0.4); 
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 1.0);
+                    osc.start(now);
+                    osc.stop(now + 1.0);
+                    break;
+                case 'stamp':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.5, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                    break;
+            }
+        }
+
+        function speak(text) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // --- 4. ロジック & ヘルパー ---
+
+        function initData() {
+            const savedUsers = localStorage.getItem(USERS_KEY);
+            if (savedUsers) {
+                state.users = JSON.parse(savedUsers);
+            }
+            const savedData = localStorage.getItem(DATA_KEY);
+            if (savedData) {
+                state.allUsersData = JSON.parse(savedData);
+            }
+        }
+
+        function saveUsers() {
+            localStorage.setItem(USERS_KEY, JSON.stringify(state.users));
+        }
+
+        function saveData() {
+            localStorage.setItem(DATA_KEY, JSON.stringify(state.allUsersData));
+        }
+
+        function getSlotSizeClass(wordLength) {
+            if (wordLength >= 8) return { box: "w-8 h-12 sm:w-12 sm:h-16", text: "text-3xl sm:text-5xl leading-relaxed pb-2" };
+            if (wordLength >= 6) return { box: "w-10 h-14 sm:w-14 sm:h-20", text: "text-4xl sm:text-6xl leading-relaxed pb-2" };
+            return { box: "w-14 h-16 sm:w-16 sm:h-24", text: "text-5xl sm:text-7xl leading-relaxed pb-3" };
+        }
+
+        function updateScreen(screenName) {
+            state.screen = screenName;
+            render();
+        }
+
+        // --- 5. レンダリング関数 (View) ---
+
+        const app = document.getElementById('app');
+
+        function render() {
+            app.innerHTML = '';
+            
+            // Common User Data
+            const currentUser = state.users.find(u => u.id === state.currentUserId);
+            const userProgress = (state.currentUserId && state.allUsersData[state.currentUserId]) 
+                ? state.allUsersData[state.currentUserId].progress 
+                : {};
+
+            if (state.screen === 'userSelect') {
+                renderUserSelect();
+            } else if (state.screen === 'userEdit') {
+                renderUserEdit();
+            } else if (state.screen === 'home') {
+                renderHome(currentUser, userProgress);
+            } else if (state.screen === 'stampBook') {
+                renderStampBook(userProgress);
+            } else if (state.screen === 'history') {
+                renderHistory();
+            } else if (state.screen === 'game') {
+                renderGame(currentUser);
+            } else if (state.screen === 'result') {
+                renderResult(currentUser, userProgress);
+            } else if (state.screen === 'stampSelect') {
+                renderStampSelect();
+            }
+
+            // Lucideアイコンの再描画
+            lucide.createIcons();
+        }
+
+        function renderUserSelect() {
+            let html = `
+            <div class="min-h-screen bg-slate-50 p-4 flex items-center justify-center w-full">
+                <div class="max-w-md w-full">
+                    <header class="mb-10 text-center relative">
+                        <div class="absolute right-0 top-0">
+                            <button onclick="toggleSound()" class="p-2 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition-colors">
+                                <i data-lucide="${state.isSoundOn ? 'volume-2' : 'volume-x'}" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <h1 class="text-3xl font-bold text-indigo-600 mb-2 flex items-center justify-center gap-2 pt-2">
+                            <i data-lucide="sparkles" class="w-8 h-8 text-yellow-400 fill-yellow-400"></i>
+                            English Puzzle
+                        </h1>
+                        <p class="text-slate-500 font-bold">だれが あそぶ？</p>
+                    </header>
+                    <div class="grid gap-4">`;
+
+            state.users.forEach(user => {
+                html += `
+                <div class="relative group">
+                    <button onclick="selectUser('${user.id}')" class="w-full p-4 pr-12 rounded-3xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 text-left ${user.color} flex items-center gap-4 border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+                        <div class="text-4xl bg-white/50 w-16 h-16 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
+                            ${user.icon}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xl font-bold truncate">${user.name}</div>
+                            <div class="text-xs opacity-80 font-bold mt-1">Let's Play!</div>
+                        </div>
+                        <i data-lucide="arrow-right" class="w-6 h-6 opacity-60"></i>
+                    </button>
+                    <button onclick="deleteUser('${user.id}')" class="absolute -top-2 -right-2 p-2 bg-white text-slate-400 hover:text-red-500 rounded-full shadow-sm border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>`;
+            });
+
+            if (state.users.length < 3) {
+                html += `
+                <button onclick="startEditUser()" class="w-full p-6 rounded-3xl border-4 border-dashed border-slate-300 text-slate-400 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 hover:border-slate-400 transition-all group">
+                    <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center group-hover:bg-slate-300 transition-colors">
+                        <i data-lucide="plus" class="w-6 h-6"></i>
+                    </div>
+                    <span class="font-bold">あたらしく つくる</span>
+                </button>`;
+            } else {
+                html += `<p class="text-center text-xs text-slate-400 mt-2 font-bold">※ 3にん まで つくれるよ</p>`;
+            }
+
+            html += `</div></div></div>`;
+            app.innerHTML = html;
+        }
+
+        function renderUserEdit() {
+            const u = state.editingUser;
+            let html = `
+            <div class="min-h-screen bg-slate-50 p-4 flex items-center justify-center w-full">
+                <div class="max-w-md w-full bg-white rounded-3xl p-6 shadow-xl border-4 border-slate-100">
+                    <h2 class="text-2xl font-bold text-center mb-6 text-slate-700">${u.id ? 'へんしゅう' : 'あたらしく つくる'}</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-400 mb-2">なまえ</label>
+                            <input type="text" id="userNameInput" value="${u.name || ''}" class="w-full text-2xl font-bold p-3 rounded-xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-center" placeholder="なまえをいれてね" oninput="updateEditingName(this.value)">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-400 mb-2">アイコン</label>
+                            <div class="flex flex-wrap gap-2 justify-center max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                ${ICON_OPTIONS.map(icon => `
+                                    <button onclick="updateEditingIcon('${icon}')" class="w-12 h-12 text-3xl flex items-center justify-center rounded-lg transition-all ${u.icon === icon ? 'bg-white shadow-md scale-110 border-2 border-indigo-400' : 'hover:bg-white hover:shadow-sm'}">
+                                        ${icon}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-400 mb-2">いろ</label>
+                            <div class="flex flex-wrap gap-3 justify-center">
+                                ${COLOR_OPTIONS.map(c => `
+                                    <button onclick="updateEditingColor('${c.class}')" class="w-10 h-10 rounded-full border-2 ${c.class.split(' ')[0]} ${u.color === c.class ? 'ring-4 ring-offset-2 ring-indigo-200 scale-110 border-indigo-500' : 'border-transparent opacity-70'}"></button>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="flex gap-3 pt-4">
+                            <button onclick="updateScreen('userSelect'); playTone('tap')" class="flex-1 py-3 rounded-xl bg-slate-200 text-slate-600 font-bold">やめる</button>
+                            <button id="saveUserBtn" onclick="saveUserEdit()" class="flex-1 py-3 rounded-xl text-white font-bold transition-all ${u.name ? 'bg-indigo-500 hover:bg-indigo-600 shadow-md transform hover:-translate-y-1' : 'bg-slate-300'}" ${!u.name ? 'disabled' : ''}>けってい</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            app.innerHTML = html;
+        }
+
+        function renderHome(user, progress) {
+            let html = `
+            <div class="min-h-screen bg-slate-50 p-4 w-full">
+                <div class="max-w-md mx-auto pt-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="updateScreen('userSelect'); playTone('tap')" class="flex items-center gap-2 px-3 py-2 bg-white rounded-full text-slate-500 font-bold shadow-sm hover:bg-slate-100">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i> もどる
+                        </button>
+                        <div class="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm ${user.color}">
+                            <span>${user.icon}</span><span>${user.name}</span>
+                        </div>
+                    </div>
+
+                    <header class="mb-6 text-center">
+                        <button onclick="updateScreen('stampBook'); playTone('tap')" class="w-full mb-8 p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-100 border-4 border-amber-200 shadow-lg flex items-center gap-4 hover:border-amber-300 hover:scale-[1.02] transition-all group relative overflow-hidden">
+                            <div class="absolute -right-6 -top-6 w-32 h-32 bg-yellow-300 rounded-full opacity-20 blur-2xl"></div>
+                            <div class="text-left flex-1 relative z-10 pl-2">
+                                <div class="text-2xl font-black text-amber-800 drop-shadow-sm">👑スタンプちょう👑</div>
+                                <div class="text-sm text-amber-700 font-bold mt-1 leading-tight flex items-center gap-1">
+                                    <i data-lucide="crown" class="w-4 h-4 fill-amber-600"></i>
+                                    3回 パーフェクトでゲット！
+                                </div>
+                            </div>
+                            <div class="bg-white p-2 rounded-full shadow-sm">
+                                <i data-lucide="arrow-right" class="w-6 h-6 text-amber-500"></i>
+                            </div>
+                        </button>
+                        <h2 class="text-2xl font-bold text-slate-700 flex items-center justify-center gap-2">
+                            <i data-lucide="grid" class="w-6 h-6 text-indigo-400"></i> どれで あそぶ？
+                        </h2>
+                    </header>
+
+                    <div class="space-y-8 mb-12">`;
+
+            CATEGORY_GROUPS.forEach(group => {
+                html += `
+                <div>
+                    <div class="flex items-center gap-2 mb-3 px-2">
+                        <span class="text-lg font-bold ${group.color}">${group.title}</span>
+                        <div class="h-1 flex-1 bg-slate-100 rounded-full"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">`;
+                
+                group.ids.forEach(catId => {
+                    const cat = DATA[catId];
+                    const p = progress[cat.id] || { perfectCount: 0, hasCrown: false };
+                    const remainingForCrown = Math.max(0, 3 - p.perfectCount);
+                    
+                    html += `
+                    <button onclick="startCategory('${cat.id}')" class="relative w-full p-4 rounded-2xl shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 text-left bg-gradient-to-r ${cat.color} text-white group overflow-hidden h-full border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+                        <div class="flex justify-between items-start relative z-10 h-full">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-lg font-bold flex flex-wrap items-center gap-1 leading-tight mb-1">
+                                    ${cat.label.split('(')[0]}
+                                    ${p.stamp ? `<span class="text-xl animate-shine drop-shadow-sm ml-1">👑</span>` : ''}
+                                </span>
+                                <div class="text-xs opacity-90 font-medium flex flex-wrap items-center gap-1">
+                                    <span class="bg-black/20 px-1.5 py-0.5 rounded-md whitespace-nowrap">${cat.words.length}もん</span>
+                                    ${!p.stamp && p.perfectCount > 0 ? `<span class="bg-yellow-400/90 text-yellow-900 px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold text-[10px]">あと${remainingForCrown}かい</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="absolute -right-2 -bottom-2 opacity-20 text-6xl pointer-events-none filter grayscale brightness-200">${cat.words[0].emoji}</div>
+                    </button>`;
+                });
+                
+                html += `</div></div>`;
+            });
+
+            html += `
+                    </div>
+                    <div class="text-center pb-8 border-t border-slate-200 pt-8">
+                        <button onclick="updateScreen('history'); playTone('tap')" class="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-500 rounded-xl font-bold shadow-sm border-2 border-slate-200 hover:bg-slate-50 transition-colors text-sm">
+                            <i data-lucide="history" class="w-4 h-4"></i> きろくを みる
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+            app.innerHTML = html;
+        }
+
+        function renderStampBook(progress) {
+            // 集めたスタンプ数をカウント
+            const totalStamps = Object.values(DATA).length;
+            const collectedStamps = Object.values(DATA).filter(cat => progress[cat.id]?.stamp).length;
+            const percentage = Math.round((collectedStamps / totalStamps) * 100);
+
+            let html = `
+            <div class="min-h-screen bg-amber-50 p-4 w-full">
+                <div class="max-w-md mx-auto pt-2">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-amber-400 hover:text-amber-600 transition-colors">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <h2 class="text-xl font-bold text-amber-900 flex items-center gap-2">
+                            👑スタンプちょう👑
+                        </h2>
+                        <div class="w-10"></div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-6 bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100">
+                        <div class="flex justify-between items-end mb-2">
+                            <span class="text-sm font-bold text-amber-800">あつめた数</span>
+                            <span class="text-2xl font-black text-amber-600">${collectedStamps} <span class="text-sm text-amber-400 font-bold">/ ${totalStamps}</span></span>
+                        </div>
+                        <div class="h-4 bg-amber-100 rounded-full overflow-hidden">
+                            <div class="h-full bg-amber-400 rounded-full transition-all duration-1000 ease-out" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-4 shadow-xl border-4 border-amber-200 min-h-[500px] relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-6 bg-gradient-to-b from-amber-50 to-transparent opacity-50 pointer-events-none"></div>
+                        
+                        <div class="grid grid-cols-4 sm:grid-cols-5 gap-2 relative z-10 pb-4">`;
+
+            Object.values(DATA).forEach(cat => {
+                const p = progress[cat.id] || { perfectCount: 0, stamp: null };
+                const hasStamp = !!p.stamp;
+                const remaining = Math.max(0, 3 - p.perfectCount);
+
+                html += `
+                <div class="flex flex-col items-center group">
+                    <div class="aspect-square w-full rounded-lg border-2 flex items-center justify-center relative bg-slate-50 transition-all
+                        ${hasStamp ? 'border-amber-300 bg-amber-50 shadow-sm scale-100' : 'border-dashed border-slate-200 opacity-70'}
+                    ">
+                        ${hasStamp 
+                            ? `<div class="text-3xl animate-shine drop-shadow-sm filter">${p.stamp}</div>`
+                            : `<div class="text-center w-full">
+                                ${p.perfectCount > 0 
+                                    ? `<div class="text-[10px] font-bold text-amber-500 bg-amber-100 rounded-full px-1 mx-1">あと${remaining}</div>`
+                                    : ``
+                                }
+                                <div class="opacity-20 text-xl grayscale mt-0.5">${cat.words[0].emoji}</div>
+                               </div>`
+                        }
+                    </div>
+                    <div class="text-[9px] font-bold text-slate-400 mt-1 w-full text-center truncate leading-tight tracking-tighter">
+                        ${cat.label.split('(')[0].replace(/[0-9①②]/g, '')}
+                    </div>
+                </div>`;
+            });
+
+            html += `</div></div></div></div>`;
+            app.innerHTML = html;
+        }
+
+        function renderStampSelect() {
+            const cat = DATA[state.currentCategory];
+            let html = `
+            <div class="min-h-screen bg-slate-50 p-4 flex items-center justify-center w-full">
+                <div class="max-w-md w-full bg-white rounded-3xl p-6 shadow-xl border-4 border-yellow-200">
+                    <div class="text-center mb-6">
+                        <div class="inline-block p-3 rounded-full bg-yellow-100 text-yellow-500 mb-4 animate-bounce">
+                            <i data-lucide="crown" class="w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800">スタンプゲット！</h2>
+                        <p class="text-slate-500 font-bold mt-2 text-sm">「${cat.label.split('(')[0]}」の<br/>スタンプを えらんでね！</p>
+                    </div>
+                    <div class="grid grid-cols-5 gap-3 max-h-80 overflow-y-auto p-2">
+                        ${STAMP_OPTIONS.map(s => `
+                            <button onclick="getStamp('${s}')" class="aspect-square text-3xl flex items-center justify-center rounded-xl hover:bg-yellow-50 hover:scale-110 transition-all cursor-pointer border-2 border-transparent hover:border-yellow-300">
+                                ${s}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>`;
+            app.innerHTML = html;
+        }
+
+        function renderGame(currentUser) {
+            const cat = DATA[state.currentCategory];
+            const currentWordData = cat.words[state.questionIndex];
+            const sizeClass = getSlotSizeClass(currentWordData.en.length);
+            const progressPercent = ((state.questionIndex) / cat.words.length) * 100;
+
+            let html = `
+            <div class="min-h-screen bg-slate-100 flex flex-col items-center p-4 transition-all w-full">
+                <div class="w-full md:max-w-4xl max-w-md flex justify-between items-center mb-6 pt-2">
+                    <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600">
+                        <i data-lucide="home" class="w-6 h-6"></i>
+                    </button>
+                    <div class="flex-1 mx-4">
+                        <div class="h-3 w-full bg-slate-200 rounded-full overflow-hidden relative">
+                            <div class="h-full bg-gradient-to-r ${cat.color} transition-all duration-500" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="text-center text-xs font-bold text-slate-400 mt-1">${state.questionIndex + 1} / ${cat.words.length}</div>
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="toggleHint()" class="flex items-center gap-1 px-3 py-2 rounded-full transition-all shadow-sm ${state.showHint ? 'bg-yellow-100 text-yellow-600 border-2 border-yellow-200' : 'bg-white text-slate-400 border-2 border-slate-200'}">
+                            <i data-lucide="lightbulb" class="w-5 h-5 ${state.showHint ? 'fill-yellow-400 text-yellow-400' : ''}"></i>
+                            <span class="text-xs font-bold">ヒント</span>
+                        </button>
+                        <button onclick="toggleSound()" class="p-2 rounded-full transition-colors ${state.isSoundOn ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}">
+                            <i data-lucide="${state.isSoundOn ? 'volume-2' : 'volume-x'}" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full md:max-w-4xl max-w-md flex-1 flex flex-col items-center">
+                    <div class="w-full bg-white rounded-3xl shadow-lg p-6 mb-6 text-center relative overflow-hidden min-h-[300px] flex flex-col justify-center items-center transition-all duration-500">
+                        ${state.isCorrect ? `<div class="absolute inset-0 bg-white z-0 flex items-center justify-center overflow-hidden"><div class="absolute inset-0 bg-gradient-to-b from-white via-white to-green-50 opacity-50"></div></div>` : ''}
+                        
+                        <div class="z-10 relative w-full flex flex-col items-center">
+                            <div class="text-7xl sm:text-8xl mb-2 animate-in zoom-in fade-in duration-500 hover:scale-110 transition-transform cursor-default select-none no-select">${currentWordData.emoji}</div>
+                            <p class="text-sm text-slate-400 font-bold tracking-widest uppercase mb-1">Meaning</p>
+                            <h2 class="text-4xl font-bold text-slate-800 mb-6 transition-all duration-500">${currentWordData.jp}</h2>
+
+                            <div class="flex gap-4 mb-8">
+                                <button onclick="handleSpeak()" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full font-bold text-sm hover:bg-indigo-100 transition-colors">
+                                    <i data-lucide="ear" class="w-5 h-5"></i> きく
+                                </button>
+                            </div>
+
+                            <div class="flex flex-wrap justify-center gap-2 min-h-[100px] items-end pb-2 px-2">`;
+
+            state.answerSlots.forEach((letter, i) => {
+                const targetChar = currentWordData.en[i];
+                const isWrong = letter && letter.char !== targetChar;
+                const isSpace = letter && letter.char === ' '; // 初期配置されたスペース
+
+                if (state.isCorrect) {
+                    html += `<div class="font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-purple-600 animate-in zoom-in duration-500 px-0.5 ${sizeClass.text}" style="text-shadow: 0 4px 12px rgba(99, 102, 241, 0.2)">${isSpace ? '&nbsp;' : letter.char}</div>`;
+                } else if (isSpace) {
+                    html += `<div class="${sizeClass.box} flex items-end justify-center"></div>`;
+                } else {
+                    html += `
+                    <button onclick="handleAnswerClick(${i})" ${!letter ? 'disabled' : ''} class="${sizeClass.box} ${sizeClass.text} rounded-lg flex items-end justify-center font-bold transition-all border-b-4 relative overflow-visible ${letter ? (isWrong ? 'text-red-500 border-red-300 hover:text-red-600' : 'text-indigo-600 border-indigo-400 hover:text-indigo-700 active:translate-y-1 active:border-b-0') : 'border-slate-200 border-dashed border-2'}">
+                        ${!letter && state.showHint ? `<span class="text-slate-200 pointer-events-none">${targetChar}</span>` : ''}
+                        ${letter ? letter.char : ''}
+                        ${isWrong ? `<span class="absolute -top-3 -right-3 bg-white rounded-full shadow-sm z-20"><i data-lucide="alert-circle" class="w-5 h-5 text-red-500 fill-red-50"></i></span>` : ''}
+                    </button>`;
+                }
+            });
+
+            html += `</div></div></div>
+            
+            <div class="w-full p-4">
+                <p class="text-center text-slate-400 text-sm mb-4 font-bold tracking-widest">TAP LETTERS</p>
+                <div class="flex flex-wrap justify-center gap-3">`;
+            
+            state.poolLetters.forEach((letter) => {
+                const isUsed = state.answerSlots.some(l => l?.id === letter.id);
+                html += `
+                <div class="relative ${sizeClass.box}">
+                    <button onclick="handlePoolClick('${letter.id}')" ${isUsed || state.isCorrect ? 'disabled' : ''} class="absolute inset-0 w-full h-full bg-white rounded-xl flex items-end justify-center ${sizeClass.text} font-bold text-slate-700 shadow-md border-b-[6px] border-slate-200 active:border-b-0 active:translate-y-1 active:bg-slate-50 transition-all ${isUsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
+                        ${letter.char}
+                    </button>
+                    ${isUsed ? `<div class="absolute inset-0 w-full h-full rounded-xl border-2 border-slate-100 bg-slate-50/50"></div>` : ''}
+                </div>`;
+            });
+
+            html += `</div></div></div>`;
+
+            if (state.isCorrect) {
+                html += `
+                <div class="fixed bottom-8 w-full max-w-md px-4 animate-in slide-in-from-bottom-4 fade-in duration-300 z-50">
+                    <button onclick="nextQuestion()" class="w-full py-5 bg-green-500 text-white rounded-2xl font-bold text-2xl shadow-xl border-b-8 border-green-600 active:border-b-0 active:translate-y-2 flex items-center justify-center gap-3 transition-all hover:bg-green-400">
+                        <span>NEXT</span> <i data-lucide="arrow-right" class="w-8 h-8"></i>
+                    </button>
+                </div>`;
+            }
+
+            html += `</div>`;
+            app.innerHTML = html;
+        }
+
+        function renderResult(user, progress) {
+            const cat = DATA[state.currentCategory];
+            const remaining = Math.max(0, 3 - (progress[cat.id]?.perfectCount || 0));
+            const { isPerfect, canGetStamp } = state.resultInfo;
+
+            let html = `
+            <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4 w-full">
+                <div class="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-xl border-4 border-yellow-200 relative overflow-hidden">
+                    <div class="mb-6 flex justify-center relative z-10">
+                        ${canGetStamp 
+                            ? `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎁</span><i data-lucide="sparkles" class="absolute -top-4 -right-4 w-12 h-12 text-yellow-300 animate-ping"></i></div>` 
+                            : (isPerfect 
+                                ? `<i data-lucide="trophy" class="w-24 h-24 text-yellow-400 fill-yellow-100 animate-bounce"></i>` // Perfectの場合
+                                : `<i data-lucide="thumbs-up" class="w-24 h-24 text-orange-500 fill-orange-100 animate-bounce"></i>` // 通常クリアの場合（オレンジに変更）
+                              )
+                        }
+                    </div>
+                    
+                    ${isPerfect 
+                        ? `<h2 class="text-4xl font-black text-yellow-500 mb-2 drop-shadow-sm">Perfect!!</h2>` 
+                        : `<h2 class="text-3xl font-bold text-slate-800 mb-2">Good Job!</h2>`
+                    }
+                    
+                    <p class="text-lg text-slate-600 font-bold mb-6">
+                        「${cat.label.split('(')[0]}」<br/>
+                        ${isPerfect ? `かんぺき！すごい！` : `クリア！`}
+                    </p>
+
+                    ${isPerfect && !canGetStamp ? `
+                    <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
+                        <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
+                            <i data-lucide="sparkles" class="w-5 h-5"></i><span>おめでとう！</span><i data-lucide="sparkles" class="w-5 h-5"></i>
+                        </div>
+                        <p class="text-slate-700 font-bold">ヒントなしで 全問クリアだよ🏅</p>
+                        <p class="text-sm text-slate-500 font-bold mt-2">あと ${remaining}かいで<br/>スタンプ ゲット！</p>
+                    </div>` : ''}
+
+                    ${canGetStamp ? `
+                    <div class="mb-6 animate-in zoom-in duration-500">
+                        <button onclick="updateScreen('stampSelect'); playTone('tap')" class="w-full py-4 bg-yellow-400 text-white rounded-2xl font-black text-xl shadow-lg border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 animate-pulse">
+                            スタンプを えらぶ！
+                        </button>
+                    </div>` : `
+                    <div class="flex flex-col gap-3 relative z-10">
+                        <button onclick="startCategory('${cat.id}')" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="refresh-ccw" class="w-5 h-5"></i> もういちど やる
+                        </button>
+                        <button onclick="updateScreen('home'); playTone('tap')" class="w-full py-4 rounded-xl bg-slate-200 text-slate-700 font-bold text-lg hover:bg-slate-300 transition-colors flex items-center justify-center gap-2">
+                            <i data-lucide="home" class="w-5 h-5"></i> ほかの カテゴリ
+                        </button>
+                    </div>`}
+                </div>
+            </div>`;
+            app.innerHTML = html;
+        }
+
+        function renderHistory() {
+            const history = (state.currentUserId && state.allUsersData[state.currentUserId]) ? state.allUsersData[state.currentUserId].history : [];
+            let html = `
+            <div class="min-h-screen bg-slate-50 p-4 w-full">
+                <div class="max-w-md mx-auto pt-2 h-full flex flex-col">
+                    <div class="flex justify-between items-center mb-6">
+                        <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2">
+                            <i data-lucide="history" class="w-6 h-6 text-indigo-500"></i> あそんだ きろく
+                        </h2>
+                        <div class="w-10"></div>
+                    </div>
+                    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex-1 overflow-hidden flex flex-col min-h-[400px]">
+                        <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-slate-500">${history.length} かい</span>
+                                <span class="text-[10px] text-slate-400 font-bold">※さいしん ${HISTORY_LIMIT}けん まで</span>
+                            </div>
+                            ${history.length > 0 ? `<button onclick="clearHistory()" class="text-xs flex items-center gap-1 text-red-400 hover:text-red-600 font-bold bg-white px-3 py-1.5 rounded-full border border-red-100"><i data-lucide="trash-2" class="w-3 h-3"></i> ぜんぶけす</button>` : ''}
+                        </div>
+                        <div class="overflow-y-auto flex-1 p-2 space-y-2">`;
+
+            if (history.length === 0) {
+                html += `<div class="h-40 flex items-center justify-center text-slate-400 font-bold">まだ きろくが ないよ</div>`;
+            } else {
+                history.forEach(record => {
+                    const cat = DATA[record.categoryId];
+                    html += `
+                    <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br ${cat?.color || 'from-slate-300 to-slate-400'} flex items-center justify-center text-2xl text-white">
+                            ${cat?.words[0].emoji || '?'}
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-bold text-slate-700">${cat?.label.split('(')[0] || 'Unknown'}</div>
+                            <div class="text-xs text-slate-400 font-bold">${record.date}</div>
+                        </div>
+                        ${record.isPerfect ? `<div class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-md text-xs font-bold border border-yellow-200">パーフェクト</div>` : ''}
+                    </div>`;
+                });
+            }
+
+            html += `</div></div></div></div>`;
+            app.innerHTML = html;
+        }
+
+        // --- 6. アクション & イベントハンドラ ---
+
+        function toggleSound() {
+            state.isSoundOn = !state.isSoundOn;
+            initAudio(); // ユーザーアクションでAudioContext再開
+            render();
+        }
+
+        function selectUser(userId) {
+            playTone('tap');
+            initAudio();
+            state.currentUserId = userId;
+            updateScreen('home');
+        }
+
+        function startEditUser() {
+            playTone('tap');
+            state.editingUser = { name: '', icon: ICON_OPTIONS[0], color: COLOR_OPTIONS[0].class };
+            updateScreen('userEdit');
+        }
+
+        // 修正: render()を呼ばず、DOMを直接操作してフォーカス外れを防ぐ
+        function updateEditingName(val) { 
+            state.editingUser.name = val; 
+            
+            // ボタンの状態だけ更新
+            const btn = document.getElementById('saveUserBtn');
+            if (btn) {
+                if (val) {
+                    btn.disabled = false;
+                    btn.classList.remove('bg-slate-300');
+                    btn.classList.add('bg-indigo-500', 'hover:bg-indigo-600', 'shadow-md', 'transform', 'hover:-translate-y-1');
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('bg-slate-300');
+                    btn.classList.remove('bg-indigo-500', 'hover:bg-indigo-600', 'shadow-md', 'transform', 'hover:-translate-y-1');
+                }
+            }
+        }
+        function updateEditingIcon(icon) { state.editingUser.icon = icon; render(); }
+        function updateEditingColor(color) { state.editingUser.color = color; render(); }
+
+        function saveUserEdit() {
+            if (!state.editingUser.name) return;
+            playTone('correct');
+            
+            if (state.editingUser.id) {
+                state.users = state.users.map(u => u.id === state.editingUser.id ? state.editingUser : u);
+            } else {
+                const newUser = { ...state.editingUser, id: Date.now().toString() };
+                state.users.push(newUser);
+                state.allUsersData[newUser.id] = { history: [], progress: {} };
+                saveData();
+            }
+            saveUsers();
+            updateScreen('userSelect');
+        }
+
+        function deleteUser(userId) {
+            if (!confirm('このユーザーと、きろくを さくじょしますか？')) return;
+            playTone('remove');
+            state.users = state.users.filter(u => u.id !== userId);
+            delete state.allUsersData[userId];
+            saveUsers();
+            saveData();
+            render();
+        }
+
+        function startCategory(catId) {
+            playTone('tap');
+            state.currentCategory = catId;
+            state.questionIndex = 0;
+            state.usedHintInSession = false;
+            state.hasErrorInSession = false;
+            // state.showHint = false; // ヒント状態を維持するためリセットしない
+            loadQuestion(catId, 0);
+            updateScreen('game');
+        }
+
+        function loadQuestion(catId, index) {
+            const cat = DATA[catId];
+            const targetWord = cat.words[index].en;
+            
+            const letters = targetWord.split('').map((char, i) => ({ char, id: `${char}-${i}-${Math.random()}` }));
+            // スペース以外をプールへ
+            state.poolLetters = letters.filter(l => l.char !== ' ').sort(() => Math.random() - 0.5);
+            // スペースは初期配置
+            state.answerSlots = letters.map(l => l.char === ' ' ? l : null);
+            
+            state.isCorrect = false;
+            // state.showHint = false; // ヒント状態を維持するためリセットしない
+            
+            setTimeout(() => speak(targetWord), 500);
+        }
+
+        function handlePoolClick(letterId) {
+            if (state.isCorrect) return;
+            const letter = state.poolLetters.find(l => l.id === letterId);
+            if (!letter) return;
+            
+            // 既に配置済みなら無視（念のため）
+            if (state.answerSlots.some(l => l?.id === letter.id)) return;
+
+            const firstEmptyIndex = state.answerSlots.findIndex(slot => slot === null);
+            if (firstEmptyIndex !== -1) {
+                // ミス判定
+                const cat = DATA[state.currentCategory];
+                const targetChar = cat.words[state.questionIndex].en[firstEmptyIndex];
+                if (letter.char !== targetChar) {
+                    state.hasErrorInSession = true;
+                }
+
+                playTone('tap');
+                state.answerSlots[firstEmptyIndex] = letter;
+                render(); // 再描画
+                checkAnswer();
+            }
+        }
+
+        function handleAnswerClick(index) {
+            if (state.isCorrect) return;
+            const slot = state.answerSlots[index];
+            if (slot && slot.char === ' ') return; // スペースは消せない
+            
+            playTone('remove');
+            state.answerSlots[index] = null;
+            render();
+        }
+
+        function toggleHint() {
+            if (!state.showHint) {
+                playTone('hint');
+                state.showHint = true;
+                state.usedHintInSession = true; // ヒントを使ったフラグを立てる（Perfect判定用）
+                render();
+            } else {
+                state.showHint = false;
+                render();
+            }
+        }
+
+        function handleSpeak() {
+            const word = DATA[state.currentCategory].words[state.questionIndex].en;
+            speak(word);
+        }
+
+        function checkAnswer() {
+            const cat = DATA[state.currentCategory];
+            const targetWord = cat.words[state.questionIndex].en;
+            const currentAnswer = state.answerSlots.map(l => l ? l.char : '').join('');
+
+            if (state.answerSlots.every(s => s !== null) && currentAnswer === targetWord) {
+                playTone('correct');
+                state.isCorrect = true;
+                render();
+                setTimeout(() => speak("Great! " + targetWord), 300);
+            }
+        }
+
+        function nextQuestion() {
+            playTone('tap');
+            const cat = DATA[state.currentCategory];
+            if (state.questionIndex + 1 < cat.words.length) {
+                state.questionIndex++;
+                loadQuestion(state.currentCategory, state.questionIndex);
+                render();
+            } else {
+                // Complete
+                // playTone()はrenderResult後、条件に応じて呼ぶか、ここで呼ぶか
+                // ここでisPerfect判定を行う
+                const isPerfect = !state.usedHintInSession && !state.hasErrorInSession;
+                
+                // 音声分岐
+                if (isPerfect) {
+                    // スタンプゲットの可能性もあるが、一旦Perfect音で祝福（スタンプゲット時は後でCrown音がなる）
+                    playTone('perfect');
+                } else {
+                    playTone('complete');
+                }
+
+                const now = new Date();
+                const today = now.toLocaleDateString('ja-JP') + ' ' + now.toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
+                
+                const user = state.allUsersData[state.currentUserId];
+                user.history.unshift({ date: today, categoryId: state.currentCategory, isPerfect });
+                
+                // 履歴上限チェック
+                if (user.history.length > HISTORY_LIMIT) {
+                    user.history = user.history.slice(0, HISTORY_LIMIT);
+                }
+                
+                let canGetStamp = false;
+                if (isPerfect) {
+                    if (!user.progress[state.currentCategory]) {
+                        user.progress[state.currentCategory] = { perfectCount: 0, stamp: null };
+                    }
+                    if (!user.progress[state.currentCategory].stamp) {
+                        user.progress[state.currentCategory].perfectCount += 1;
+                        if (user.progress[state.currentCategory].perfectCount >= 3) {
+                            canGetStamp = true;
+                            // スタンプゲットの音は少し遅らせて特別感を出す
+                            setTimeout(() => playTone('crown'), 1500); 
+                        }
+                    }
+                }
+                saveData();
+                state.resultInfo = { isPerfect, canGetStamp };
+                updateScreen('result');
+            }
+        }
+
+        function getStamp(stamp) {
+            const user = state.allUsersData[state.currentUserId];
+            if (user.progress[state.currentCategory]) {
+                user.progress[state.currentCategory].stamp = stamp;
+            }
+            saveData();
+            playTone('stamp');
+            updateScreen('stampBook');
+        }
+
+        function clearHistory() {
+            if (!confirm('ほんとうに きろくを ぜんぶ けしますか？')) return;
+            state.allUsersData[state.currentUserId].history = [];
+            saveData();
+            playTone('remove');
+            render();
+        }
+
+        // 初期化
+        initData();
+        render();
+
+    </script>
+</body>
+</html>
