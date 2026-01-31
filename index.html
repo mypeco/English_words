@@ -5,22 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Eigo Puzzle - 英語スペルパズル</title>
     
-    <!-- Google Fonts (丸文字でかわいく) -->
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
-            touch-action: manipulation; /* ダブルタップズーム防止 */
+            touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
-        /* アニメーション用 */
         @keyframes spin-in {
             from { transform: rotate(-180deg) scale(0); opacity: 0; }
             to { transform: rotate(0) scale(1); opacity: 1; }
@@ -28,7 +24,6 @@
         .animate-spin-in {
             animation: spin-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
-        /* 新しいキラキラアニメーション（止まっていて、時々光る） */
         @keyframes shine {
             0%, 80% { transform: scale(1); filter: brightness(100%) drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
             85% { transform: scale(1.2) rotate(-5deg); filter: brightness(130%) drop-shadow(0 0 5px rgba(255,215,0,0.6)); }
@@ -36,7 +31,7 @@
             100% { transform: scale(1); filter: brightness(100%) drop-shadow(0 1px 1px rgba(0,0,0,0.1)); }
         }
         .animate-shine {
-            animation: shine 4s infinite; /* 4秒に1回キラッとする */
+            animation: shine 4s infinite;
             display: inline-block;
         }
         .no-select {
@@ -46,26 +41,33 @@
         /* ルビの調整 */
         ruby {
             font-family: 'M PLUS Rounded 1c', sans-serif;
+            ruby-align: center;
         }
         rt {
             font-size: 0.6em;
             font-weight: normal;
-            color: #f1f5f9; /* slate-100 (白抜き文字の上なので明るく) */
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            color: #64748b; /* slate-500 */
+            margin-bottom: -0.2em;
+        }
+        /* ポップアップ用アニメーション */
+        @keyframes modal-in {
+            from { opacity: 0; transform: scale(0.95) translateY(10px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-modal-in {
+            animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 
-    <!-- アプリ描画エリア -->
     <div id="app" class="min-h-screen flex flex-col"></div>
 
     <script>
         // --- 1. データ定義 (全28カテゴリ) ---
-        // カテゴリ名をひらがな・カタカナに統一し、色をグループに合わせて調整
         
         const DATA = {
-            // --- Group 1: 👑 はじめよう (Basics) [暖色系: Orange/Yellow/Pink] ---
+            // --- Group 1: 👑 はじめよう (Basics) ---
             num1: { id: 'num1', label: 'すうじ① (1-10)', color: 'from-orange-400 to-amber-500', words: [ { en: 'one', jp: '1', emoji: '1️⃣' }, { en: 'two', jp: '2', emoji: '2️⃣' }, { en: 'three', jp: '3', emoji: '3️⃣' }, { en: 'four', jp: '4', emoji: '4️⃣' }, { en: 'five', jp: '5', emoji: '5️⃣' }, { en: 'six', jp: '6', emoji: '6️⃣' }, { en: 'seven', jp: '7', emoji: '7️⃣' }, { en: 'eight', jp: '8', emoji: '8️⃣' }, { en: 'nine', jp: '9', emoji: '9️⃣' }, { en: 'ten', jp: '10', emoji: '🔟' } ] },
             colors: { id: 'colors', label: 'いろ (Colors)', color: 'from-amber-400 to-yellow-500', words: [ { en: 'red', jp: '<ruby>赤<rt>あか</rt></ruby>', emoji: '🔴' }, { en: 'blue', jp: '<ruby>青<rt>あお</rt></ruby>', emoji: '🔵' }, { en: 'yellow', jp: '<ruby>黄<rt>きいろ</rt></ruby>', emoji: '🟡' }, { en: 'green', jp: '<ruby>緑<rt>みどり</rt></ruby>', emoji: '🟢' }, { en: 'orange', jp: 'オレンジ', emoji: '🟠' }, { en: 'pink', jp: 'ピンク', emoji: '💗' }, { en: 'purple', jp: '<ruby>紫<rt>むらさき</rt></ruby>', emoji: '🟣' }, { en: 'black', jp: '<ruby>黒<rt>くろ</rt></ruby>', emoji: '⚫' }, { en: 'white', jp: '<ruby>白<rt>しろ</rt></ruby>', emoji: '⚪' }, { en: 'brown', jp: '<ruby>茶色<rt>ちゃいろ</rt></ruby>', emoji: '🟤' }, { en: 'gold', jp: '<ruby>金<rt>きん</rt></ruby>', emoji: '🥇' }, { en: 'silver', jp: '<ruby>銀<rt>ぎん</rt></ruby>', emoji: '🥈' } ] },
             animals: { id: 'animals', label: 'どうぶつ (Animals)', color: 'from-yellow-400 to-lime-500', words: [ { en: 'dog', jp: '<ruby>犬<rt>いぬ</rt></ruby>', emoji: '🐶' }, { en: 'cat', jp: '<ruby>猫<rt>ねこ</rt></ruby>', emoji: '🐱' }, { en: 'rabbit', jp: 'ウサギ', emoji: '🐰' }, { en: 'bird', jp: '<ruby>鳥<rt>とり</rt></ruby>', emoji: '🐦' }, { en: 'fish', jp: '<ruby>魚<rt>さかな</rt></ruby>', emoji: '🐟' }, { en: 'bear', jp: 'クマ', emoji: '🐻' }, { en: 'lion', jp: 'ライオン', emoji: '🦁' }, { en: 'tiger', jp: 'トラ', emoji: '🐯' }, { en: 'elephant', jp: 'ゾウ', emoji: '🐘' }, { en: 'monkey', jp: 'サル', emoji: '🐵' }, { en: 'panda', jp: 'パンダ', emoji: '🐼' }, { en: 'horse', jp: 'ウマ', emoji: '🐴' }, { en: 'cow', jp: 'ウシ', emoji: '🐮' }, { en: 'pig', jp: 'ブタ', emoji: '🐷' } ] },
@@ -73,14 +75,14 @@
             family: { id: 'family', label: 'かぞく (Family)', color: 'from-pink-400 to-rose-500', words: [ { en: 'family', jp: '<ruby>家族<rt>かぞく</rt></ruby>', emoji: '👨‍👩‍👧‍👦' }, { en: 'father', jp: '<ruby>父<rt>ちち</rt></ruby>', emoji: '👨' }, { en: 'mother', jp: '<ruby>母<rt>はは</rt></ruby>', emoji: '👩' }, { en: 'brother', jp: '<ruby>兄<rt>あに</rt></ruby>・<ruby>弟<rt>おとうと</rt></ruby>', emoji: '👦' }, { en: 'sister', jp: '<ruby>姉<rt>あね</rt></ruby>・<ruby>妹<rt>いもうと</rt></ruby>', emoji: '👧' }, { en: 'grandfather', jp: '<ruby>祖父<rt>そふ</rt></ruby>', emoji: '👴' }, { en: 'grandmother', jp: '<ruby>祖母<rt>そぼ</rt></ruby>', emoji: '👵' } ] },
             adj2: { id: 'adj2', label: 'きもち (Feelings)', color: 'from-rose-400 to-red-500', words: [ { en: 'happy', jp: '<ruby>幸<rt>しあわ</rt></ruby>せ', emoji: '😄' }, { en: 'sad', jp: '<ruby>悲<rt>かな</rt></ruby>しい', emoji: '😢' }, { en: 'nice', jp: '<ruby>素敵<rt>すてき</rt></ruby>', emoji: '👍' }, { en: 'good', jp: '<ruby>良<rt>よ</rt></ruby>い', emoji: '👌' }, { en: 'fun', jp: '<ruby>楽<rt>たの</rt></ruby>しい', emoji: '😆' }, { en: 'cute', jp: 'かわいい', emoji: '🎀' }, { en: 'beautiful', jp: '<ruby>美<rt>うつく</rt></ruby>しい', emoji: '🌹' }, { en: 'kind', jp: '<ruby>親切<rt>しんせつ</rt></ruby>', emoji: '🤝' }, { en: 'easy', jp: '<ruby>簡単<rt>かんたん</rt></ruby>', emoji: '⭕' }, { en: 'hard', jp: '<ruby>難<rt>むずか</rt></ruby>しい', emoji: '🧱' } ] },
 
-            // --- Group 2: 📅 カレンダーと時間 (Time) [寒色系: Sky/Blue/Indigo] ---
+            // --- Group 2: 📅 カレンダーと時間 (Time) ---
             days: { id: 'days', label: 'ようび (Days)', color: 'from-sky-400 to-blue-500', words: [ { en: 'Sunday', jp: '<ruby>日曜日<rt>にちようび</rt></ruby>', emoji: '☀️' }, { en: 'Monday', jp: '<ruby>月曜日<rt>げつようび</rt></ruby>', emoji: '🌙' }, { en: 'Tuesday', jp: '<ruby>火曜日<rt>かようび</rt></ruby>', emoji: '🔥' }, { en: 'Wednesday', jp: '<ruby>水曜日<rt>すいようび</rt></ruby>', emoji: '💧' }, { en: 'Thursday', jp: '<ruby>木曜日<rt>もくようび</rt></ruby>', emoji: '🌳' }, { en: 'Friday', jp: '<ruby>金曜日<rt>きんようび</rt></ruby>', emoji: '✨' }, { en: 'Saturday', jp: '<ruby>土曜日<rt>どようび</rt></ruby>', emoji: '⛰️' } ] },
             months: { id: 'months', label: 'つき (Months)', color: 'from-blue-400 to-indigo-500', words: [ { en: 'January', jp: '<ruby>1月<rt>がつ</rt></ruby>', emoji: '🎍' }, { en: 'February', jp: '<ruby>2月<rt>がつ</rt></ruby>', emoji: '👹' }, { en: 'March', jp: '<ruby>3月<rt>がつ</rt></ruby>', emoji: '🎎' }, { en: 'April', jp: '<ruby>4月<rt>がつ</rt></ruby>', emoji: '🌸' }, { en: 'May', jp: '<ruby>5月<rt>がつ</rt></ruby>', emoji: '🎏' }, { en: 'June', jp: '<ruby>6月<rt>がつ</rt></ruby>', emoji: '☔' }, { en: 'July', jp: '<ruby>7月<rt>がつ</rt></ruby>', emoji: '🎋' }, { en: 'August', jp: '<ruby>8月<rt>がつ</rt></ruby>', emoji: '🌻' }, { en: 'September', jp: '<ruby>9月<rt>がつ</rt></ruby>', emoji: '🎑' }, { en: 'October', jp: '<ruby>10月<rt>がつ</rt></ruby>', emoji: '🎃' }, { en: 'November', jp: '<ruby>11月<rt>がつ</rt></ruby>', emoji: '🍂' }, { en: 'December', jp: '<ruby>12月<rt>がつ</rt></ruby>', emoji: '🎄' } ] },
             seasons: { id: 'seasons', label: 'きせつ (Seasons)', color: 'from-indigo-400 to-violet-500', words: [ { en: 'spring', jp: '<ruby>春<rt>はる</rt></ruby>', emoji: '🌸' }, { en: 'summer', jp: '<ruby>夏<rt>なつ</rt></ruby>', emoji: '🌻' }, { en: 'autumn', jp: '<ruby>秋<rt>あき</rt></ruby>', emoji: '🍁' }, { en: 'winter', jp: '<ruby>冬<rt>ふゆ</rt></ruby>', emoji: '⛄' } ] },
             time1: { id: 'time1', label: 'じかん① (Time 1)', color: 'from-violet-400 to-purple-500', words: [ { en: 'time', jp: '<ruby>時間<rt>じかん</rt></ruby>', emoji: '⏰' }, { en: 'year', jp: '<ruby>年<rt>ねん</rt></ruby>', emoji: '📅' }, { en: 'month', jp: '<ruby>月<rt>つき</rt></ruby>', emoji: '🗓️' }, { en: 'minute', jp: '<ruby>分<rt>ふん</rt></ruby>', emoji: '⏱️' }, { en: 'morning', jp: '<ruby>朝<rt>あさ</rt></ruby>', emoji: '🌅' }, { en: 'afternoon', jp: '<ruby>昼<rt>ひる</rt></ruby>・<ruby>午後<rt>ごご</rt></ruby>', emoji: '☀️' }, { en: 'evening', jp: '<ruby>夕方<rt>ゆうがた</rt></ruby>', emoji: '🌇' }, { en: 'night', jp: '<ruby>夜<rt>よる</rt></ruby>', emoji: '🌙' } ] },
             time2: { id: 'time2', label: 'じかん② (Time 2)', color: 'from-purple-400 to-fuchsia-500', words: [ { en: 'today', jp: '<ruby>今日<rt>きょう</rt></ruby>', emoji: '👇' }, { en: 'tomorrow', jp: '<ruby>明日<rt>あした</rt></ruby>', emoji: '➡️' }, { en: 'yesterday', jp: '<ruby>昨日<rt>きのう</rt></ruby>', emoji: '⬅️' }, { en: 'now', jp: '<ruby>今<rt>いま</rt></ruby>', emoji: '⏱️' }, { en: 'always', jp: 'いつも', emoji: '🔁' }, { en: 'usually', jp: 'たいてい', emoji: '😌' }, { en: 'sometimes', jp: '<ruby>時々<rt>ときどき</rt></ruby>', emoji: '🤔' }, { en: 'never', jp: '<ruby>決<rt>けっ</rt></ruby>して～ない', emoji: '🙅' } ] },
 
-            // --- Group 3: 🏫 学校と生活 (School & Life) [緑/Teal系] ---
+            // --- Group 3: 🏫 学校と生活 (School & Life) ---
             school1: { id: 'school1', label: 'がっこう① (School 1)', color: 'from-teal-400 to-emerald-500', words: [ { en: 'school', jp: '<ruby>学校<rt>がっこう</rt></ruby>', emoji: '🏫' }, { en: 'teacher', jp: '<ruby>先生<rt>せんせい</rt></ruby>', emoji: '👨‍🏫' }, { en: 'student', jp: '<ruby>生徒<rt>せいと</rt></ruby>', emoji: '🎒' }, { en: 'friend', jp: '<ruby>友達<rt>ともだち</rt></ruby>', emoji: '🤝' }, { en: 'class', jp: '<ruby>授業<rt>じゅぎょう</rt></ruby>', emoji: '🔔' }, { en: 'classroom', jp: '<ruby>教室<rt>きょうしつ</rt></ruby>', emoji: '🚪' }, { en: 'gym', jp: '<ruby>体育館<rt>たいいくかん</rt></ruby>', emoji: '🏟️' }, { en: 'library', jp: '<ruby>図書室<rt>としょしつ</rt></ruby>', emoji: '📚' } ] },
             school2: { id: 'school2', label: 'がっこう② (School 2)', color: 'from-emerald-400 to-green-500', words: [ { en: 'notebook', jp: 'ノート', emoji: '📓' }, { en: 'pencil', jp: '<ruby>鉛筆<rt>えんぴつ</rt></ruby>', emoji: '✏️' }, { en: 'eraser', jp: '<ruby>消<rt>け</rt></ruby>しゴム', emoji: '🧼' }, { en: 'pen', jp: 'ペン', emoji: '🖊️' }, { en: 'desk', jp: '<ruby>机<rt>つくえ</rt></ruby>', emoji: '🏫' }, { en: 'chair', jp: '<ruby>椅子<rt>いす</rt></ruby>', emoji: '🪑' }, { en: 'textbook', jp: '<ruby>教科書<rt>きょうかしょ</rt></ruby>', emoji: '📖' }, { en: 'homework', jp: '<ruby>宿題<rt>しゅくだい</rt></ruby>', emoji: '📝' } ] },
             sports: { id: 'sports', label: 'スポーツ (Sports)', color: 'from-green-400 to-teal-600', words: [ { en: 'baseball', jp: '<ruby>野球<rt>やきゅう</rt></ruby>', emoji: '⚾' }, { en: 'soccer', jp: 'サッカー', emoji: '⚽' }, { en: 'basketball', jp: 'バスケットボール', emoji: '🏀' }, { en: 'tennis', jp: 'テニス', emoji: '🎾' }, { en: 'volleyball', jp: 'バレーボール', emoji: '🏐' }, { en: 'swimming', jp: '<ruby>水泳<rt>すいえい</rt></ruby>', emoji: '🏊' }, { en: 'badminton', jp: 'バドミントン', emoji: '🏸' }, { en: 'dance', jp: 'ダンス', emoji: '💃' } ] },
@@ -88,7 +90,7 @@
             clothes: { id: 'clothes', label: 'ふく (Clothes)', color: 'from-cyan-500 to-sky-600', words: [ { en: 'cap', jp: '<ruby>帽子<rt>ぼうし</rt></ruby>・キャップ', emoji: '🧢' }, { en: 'hat', jp: '<ruby>帽子<rt>ぼうし</rt></ruby>・ハット', emoji: '👒' }, { en: 'T-shirt', jp: 'Tシャツ', emoji: '👕' }, { en: 'shirt', jp: 'シャツ', emoji: '👔' }, { en: 'shoes', jp: '<ruby>靴<rt>くつ</rt></ruby>', emoji: '👟' }, { en: 'socks', jp: '<ruby>靴下<rt>くつした</rt></ruby>', emoji: '🧦' }, { en: 'bag', jp: 'カバン', emoji: '🎒' }, { en: 'umbrella', jp: '<ruby>傘<rt>かさ</rt></ruby>', emoji: '☂️' } ] },
             drinks: { id: 'drinks', label: 'のみもの (Drinks)', color: 'from-sky-500 to-blue-600', words: [ { en: 'milk', jp: '<ruby>牛乳<rt>ぎゅうにゅう</rt></ruby>', emoji: '🥛' }, { en: 'water', jp: '<ruby>水<rt>みず</rt></ruby>', emoji: '💧' }, { en: 'juice', jp: 'ジュース', emoji: '🍹' }, { en: 'tea', jp: '<ruby>お茶<rt>ちゃ</rt></ruby>', emoji: '🍵' }, { en: 'coffee', jp: 'コーヒー', emoji: '☕' } ] },
 
-            // --- Group 4: 🌍 いろいろな言葉 (World & Actions) [Purple/Pink系] ---
+            // --- Group 4: 🌍 いろいろな言葉 (World & Actions) ---
             verbs1: { id: 'verbs1', label: 'うごき① (Verbs 1)', color: 'from-purple-400 to-fuchsia-500', words: [ { en: 'play', jp: '<ruby>遊<rt>あそ</rt></ruby>ぶ・する', emoji: '🎮' }, { en: 'go', jp: '<ruby>行<rt>い</rt></ruby>く', emoji: '🚶' }, { en: 'come', jp: '<ruby>来<rt>く</rt></ruby>る', emoji: '🏃' }, { en: 'swim', jp: '<ruby>泳<rt>およ</rt></ruby>ぐ', emoji: '🏊' }, { en: 'run', jp: '<ruby>走<rt>はし</rt></ruby>る', emoji: '💨' }, { en: 'make', jp: '<ruby>作<rt>つく</rt></ruby>る', emoji: '🔨' }, { en: 'use', jp: '<ruby>使<rt>つか</rt></ruby>う', emoji: '💻' }, { en: 'wash', jp: '<ruby>洗<rt>あら</rt></ruby>う', emoji: '🧼' }, { en: 'clean', jp: '<ruby>掃除<rt>そうじ</rt></ruby>する', emoji: '🧹' } ] },
             verbs2: { id: 'verbs2', label: 'うごき② (Verbs 2)', color: 'from-fuchsia-400 to-pink-500', words: [ { en: 'eat', jp: '<ruby>食<rt>た</rt></ruby>べる', emoji: '🍽️' }, { en: 'drink', jp: '<ruby>飲<rt>の</rt></ruby>む', emoji: '🥤' }, { en: 'cook', jp: '<ruby>料理<rt>りょうり</rt></ruby>する', emoji: '🍳' }, { en: 'study', jp: '<ruby>勉強<rt>べんきょう</rt></ruby>する', emoji: '✏️' }, { en: 'watch', jp: '<ruby>見<rt>み</rt></ruby>る', emoji: '📺' }, { en: 'listen', jp: '<ruby>聞<rt>き</rt></ruby>く', emoji: '🎧' }, { en: 'like', jp: '<ruby>好<rt>す</rt></ruby>き', emoji: '❤️' }, { en: 'have', jp: '<ruby>持<rt>も</rt></ruby>っている', emoji: '🤲' }, { en: 'want', jp: '<ruby>欲<rt>ほ</rt></ruby>しい', emoji: '🥺' } ] },
             nature: { id: 'nature', label: 'しぜん (Nature)', color: 'from-pink-400 to-rose-500', words: [ { en: 'sun', jp: '<ruby>太陽<rt>たいよう</rt></ruby>', emoji: '☀️' }, { en: 'moon', jp: '<ruby>月<rt>つき</rt></ruby>', emoji: '🌕' }, { en: 'sky', jp: '<ruby>空<rt>そら</rt></ruby>', emoji: '🌌' }, { en: 'rain', jp: '<ruby>雨<rt>あめ</rt></ruby>', emoji: '☔' }, { en: 'snow', jp: '<ruby>雪<rt>ゆき</rt></ruby>', emoji: '⛄' }, { en: 'cloud', jp: '<ruby>雲<rt>くも</rt></ruby>', emoji: '☁️' }, { en: 'wind', jp: '<ruby>風<rt>かぜ</rt></ruby>', emoji: '🍃' }, { en: 'river', jp: '<ruby>川<rt>かわ</rt></ruby>', emoji: '🏞️' }, { en: 'mountain', jp: '<ruby>山<rt>やま</rt></ruby>', emoji: '⛰️' }, { en: 'sea', jp: '<ruby>海<rt>うみ</rt></ruby>', emoji: '🌊' }, { en: 'flower', jp: '<ruby>花<rt>はな</rt></ruby>', emoji: '🌷' }, { en: 'tree', jp: '<ruby>木<rt>き</rt></ruby>', emoji: '🌳' } ] },
@@ -96,7 +98,7 @@
             life2: { id: 'life2', label: 'せいかつ② (Life 2)', color: 'from-red-400 to-orange-500', words: [ { en: 'bed', jp: 'ベッド', emoji: '🛏️' }, { en: 'computer', jp: 'コンピュータ', emoji: '💻' }, { en: 'TV', jp: 'テレビ', emoji: '📺' }, { en: 'phone', jp: '<ruby>電話<rt>でんわ</rt></ruby>', emoji: '☎️' }, { en: 'money', jp: '<ruby>お金<rt>かね</rt></ruby>', emoji: '💴' }, { en: 'present', jp: 'プレゼント', emoji: '🎁' } ] },
             countries: { id: 'countries', label: 'くに (Countries)', color: 'from-orange-400 to-amber-500', words: [ { en: 'Japan', jp: '<ruby>日本<rt>にほん</rt></ruby>', emoji: '🇯🇵' }, { en: 'America', jp: 'アメリカ', emoji: '🇺🇸' }, { en: 'Canada', jp: 'カナダ', emoji: '🇨🇦' }, { en: 'Australia', jp: 'オーストラリア', emoji: '🇦🇺' }, { en: 'China', jp: '<ruby>中国<rt>ちゅうごく</rt></ruby>', emoji: '🇨🇳' }, { en: 'Korea', jp: '<ruby>韓国<rt>かんこく</rt></ruby>', emoji: '🇰🇷' }, { en: 'Brazil', jp: 'ブラジル', emoji: '🇧🇷' } ] },
 
-            // --- Group 5: 🔥 チャレンジ (Challenge) [Dark/Rich系] ---
+            // --- Group 5: 🔥 チャレンジ (Challenge) ---
             num2: { id: 'num2', label: 'すうじ② (11-20)', color: 'from-rose-500 to-pink-600', words: [ { en: 'eleven', jp: '11', emoji: '🕚' }, { en: 'twelve', jp: '12', emoji: '🕛' }, { en: 'thirteen', jp: '13', emoji: '1️⃣3️⃣' }, { en: 'fourteen', jp: '14', emoji: '1️⃣4️⃣' }, { en: 'fifteen', jp: '15', emoji: '1️⃣5️⃣' }, { en: 'sixteen', jp: '16', emoji: '1️⃣6️⃣' }, { en: 'seventeen', jp: '17', emoji: '1️⃣7️⃣' }, { en: 'eighteen', jp: '18', emoji: '1️⃣8️⃣' }, { en: 'nineteen', jp: '19', emoji: '1️⃣9️⃣' }, { en: 'twenty', jp: '20', emoji: '2️⃣0️⃣' } ] },
             shapes: { id: 'shapes', label: 'かたち (Shapes)', color: 'from-pink-500 to-fuchsia-600', words: [ { en: 'circle', jp: '<ruby>円<rt>えん</rt></ruby>', emoji: '⭕' }, { en: 'triangle', jp: '<ruby>三角形<rt>さんかくけい</rt></ruby>', emoji: '🔺' }, { en: 'square', jp: '<ruby>正方形<rt>せいほうけい</rt></ruby>・<ruby>四角<rt>しかく</rt></ruby>', emoji: '🟥' }, { en: 'star', jp: '<ruby>星<rt>ほし</rt></ruby>', emoji: '⭐' }, { en: 'heart', jp: 'ハート', emoji: '❤️' } ] },
             order: { id: 'order', label: 'じゅんばん (Order)', color: 'from-fuchsia-500 to-purple-600', words: [ { en: 'first', jp: '<ruby>1番目<rt>ばんめ</rt></ruby>', emoji: '🥇' }, { en: 'second', jp: '<ruby>2番目<rt>ばんめ</rt></ruby>', emoji: '🥈' }, { en: 'third', jp: '<ruby>3番目<rt>ばんめ</rt></ruby>', emoji: '🥉' }, { en: 'fourth', jp: '<ruby>4番目<rt>ばんめ</rt></ruby>', emoji: '4️⃣' }, { en: 'fifth', jp: '<ruby>5番目<rt>ばんめ</rt></ruby>', emoji: '5️⃣' }, { en: 'sixth', jp: '<ruby>6番目<rt>ばんめ</rt></ruby>', emoji: '6️⃣' }, { en: 'seventh', jp: '<ruby>7番目<rt>ばんめ</rt></ruby>', emoji: '7️⃣' }, { en: 'eighth', jp: '<ruby>8番目<rt>ばんめ</rt></ruby>', emoji: '8️⃣' }, { en: 'ninth', jp: '<ruby>9番目<rt>ばんめ</rt></ruby>', emoji: '9️⃣' }, { en: 'tenth', jp: '<ruby>10番目<rt>ばんめ</rt></ruby>', emoji: '🔟' } ] },
@@ -104,7 +106,6 @@
             questions: { id: 'questions', label: 'しつもん (Questions)', color: 'from-indigo-500 to-blue-600', words: [ { en: 'what', jp: '<ruby>何<rt>なに</rt></ruby>', emoji: '❓' }, { en: 'who', jp: '<ruby>誰<rt>だれ</rt></ruby>', emoji: '👤' }, { en: 'where', jp: 'どこ', emoji: '📍' }, { en: 'when', jp: 'いつ', emoji: '⏰' }, { en: 'which', jp: 'どちら', emoji: '👈' }, { en: 'how', jp: 'どうやって', emoji: '🛠️' }, { en: 'whose', jp: '<ruby>誰<rt>だれ</rt></ruby>の', emoji: '🏷️' } ] },
         };
 
-        // --- カテゴリグループ定義（ホーム画面の整理用） ---
         const CATEGORY_GROUPS = [
             {
                 title: "👑 はじめよう (Basics)",
@@ -155,9 +156,9 @@
             { label: 'Teal', class: 'bg-teal-100 text-teal-700' },
         ];
 
-        // Version 6 (そのまま使用)
-        const DATA_KEY = 'spelling_game_data_v6';
-        const USERS_KEY = 'spelling_game_users_v6';
+        // Version 7: Challenge Mode Added
+        const DATA_KEY = 'spelling_game_data_v7';
+        const USERS_KEY = 'spelling_game_users_v7';
         const HISTORY_LIMIT = 50;
 
         // --- 2. 状態管理 (Global State) ---
@@ -166,24 +167,31 @@
             users: [],
             allUsersData: {},
             currentUserId: null,
-            screen: 'userSelect', // userSelect, userEdit, home, history, game, result, stampBook, stampSelect
+            screen: 'userSelect', 
             isSoundOn: true,
             
+            // UI State
+            showHelp: false,
+
             // Edit User State
-            editingUser: {}, // { id, name, icon, color }
+            editingUser: {}, 
 
             // Game State
             currentCategory: null,
             questionIndex: 0,
-            poolLetters: [], // { char, id }
-            answerSlots: [], // { char, id } or null
+            poolLetters: [],
+            answerSlots: [],
             isCorrect: false,
             showHint: false,
-            usedHintInSession: false,
-            hasErrorInSession: false,
+            
+            // Session Stats (90%ルールとチャレンジ用)
+            sessionPerfectWordCount: 0, 
+            sessionErrorWords: [],      
+            currentWordHadError: false, 
+            currentWordUsedHint: false, 
 
             // Result State
-            resultInfo: null // { isPerfect, canGetStamp }
+            resultInfo: null 
         };
 
         // --- 3. 音声・効果音エンジン ---
@@ -254,7 +262,7 @@
                     osc.start(now);
                     osc.stop(now + 0.2);
                     break;
-                case 'complete': // 通常クリア
+                case 'complete': 
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(523.25, now); 
                     osc.frequency.setValueAtTime(659.25, now + 0.15); 
@@ -265,7 +273,7 @@
                     osc.start(now);
                     osc.stop(now + 0.8);
                     break;
-                case 'perfect': // パーフェクト
+                case 'perfect': 
                     osc.type = 'square';
                     osc.frequency.setValueAtTime(523.25, now); 
                     osc.frequency.setValueAtTime(523.25, now + 0.12); 
@@ -279,7 +287,7 @@
                     osc.start(now);
                     osc.stop(now + 2.0);
                     break;
-                case 'crown': // スタンプゲット
+                case 'crown': 
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(1046.50, now); 
                     osc.frequency.setValueAtTime(1318.51, now + 0.1); 
@@ -340,6 +348,7 @@
 
         function updateScreen(screenName) {
             state.screen = screenName;
+            state.showHelp = false; // 画面遷移時にヘルプは閉じる
             render();
         }
 
@@ -352,24 +361,26 @@
             
             // Common User Data
             const currentUser = state.users.find(u => u.id === state.currentUserId);
-            const userProgress = (state.currentUserId && state.allUsersData[state.currentUserId]) 
-                ? state.allUsersData[state.currentUserId].progress 
-                : {};
+            const userData = (state.currentUserId && state.allUsersData[state.currentUserId]) 
+                ? state.allUsersData[state.currentUserId] 
+                : { progress: {}, history: [], challengeWords: [] };
+            
+            if (!userData.challengeWords) userData.challengeWords = [];
 
             if (state.screen === 'userSelect') {
                 renderUserSelect();
             } else if (state.screen === 'userEdit') {
                 renderUserEdit();
             } else if (state.screen === 'home') {
-                renderHome(currentUser, userProgress);
+                renderHome(currentUser, userData.progress, userData.challengeWords);
             } else if (state.screen === 'stampBook') {
-                renderStampBook(userProgress);
+                renderStampBook(userData.progress);
             } else if (state.screen === 'history') {
-                renderHistory();
+                renderHistory(userData.history);
             } else if (state.screen === 'game') {
                 renderGame(currentUser);
             } else if (state.screen === 'result') {
-                renderResult(currentUser, userProgress);
+                renderResult(currentUser, userData.progress);
             } else if (state.screen === 'stampSelect') {
                 renderStampSelect();
             }
@@ -392,7 +403,7 @@
                             <i data-lucide="sparkles" class="w-8 h-8 text-yellow-400 fill-yellow-400"></i>
                             English Puzzle
                         </h1>
-                        <p class="text-slate-500 font-bold">だれが あそぶ？</p>
+                        <p class="text-slate-500 font-bold">だれが まなぶ？</p>
                     </header>
                     <div class="grid gap-4">`;
 
@@ -470,35 +481,57 @@
             app.innerHTML = html;
         }
 
-        function renderHome(user, progress) {
+        function renderHome(user, progress, challengeWords) {
             let html = `
-            <div class="min-h-screen bg-slate-50 p-4 w-full">
+            <div class="min-h-screen bg-slate-50 p-4 w-full relative">
                 <div class="max-w-md mx-auto pt-2">
                     <div class="flex justify-between items-center mb-6">
-                        <button onclick="updateScreen('userSelect'); playTone('tap')" class="flex items-center gap-2 px-3 py-2 bg-white rounded-full text-slate-500 font-bold shadow-sm hover:bg-slate-100">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i> もどる
+                        <button onclick="updateScreen('userSelect'); playTone('tap')" class="flex items-center gap-2 px-3 py-2 bg-white rounded-full text-slate-500 font-bold shadow-sm hover:bg-slate-100 border border-slate-100">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i> <span class="text-xs">もどる</span>
                         </button>
-                        <div class="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm ${user.color}">
+                        
+                        <button onclick="toggleHelp()" class="flex items-center gap-1 px-3 py-2 bg-indigo-50 rounded-full text-indigo-600 font-bold shadow-sm hover:bg-indigo-100 border border-indigo-100">
+                            <i data-lucide="help-circle" class="w-4 h-4"></i> <span class="text-xs">つかいかた</span>
+                        </button>
+
+                        <div class="flex items-center gap-2 px-3 py-2 rounded-full font-bold text-xs ${user.color}">
                             <span>${user.icon}</span><span>${user.name}</span>
                         </div>
                     </div>
 
                     <header class="mb-6 text-center">
-                        <button onclick="updateScreen('stampBook'); playTone('tap')" class="w-full mb-8 p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-100 border-4 border-amber-200 shadow-lg flex items-center gap-4 hover:border-amber-300 hover:scale-[1.02] transition-all group relative overflow-hidden">
+                        <button onclick="updateScreen('stampBook'); playTone('tap')" class="w-full mb-6 p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-100 border-4 border-amber-200 shadow-lg flex items-center gap-4 hover:border-amber-300 hover:scale-[1.02] transition-all group relative overflow-hidden">
                             <div class="absolute -right-6 -top-6 w-32 h-32 bg-yellow-300 rounded-full opacity-20 blur-2xl"></div>
                             <div class="text-left flex-1 relative z-10 pl-2">
                                 <div class="text-2xl font-black text-amber-800 drop-shadow-sm">👑スタンプちょう👑</div>
                                 <div class="text-sm text-amber-700 font-bold mt-1 leading-tight flex items-center gap-1">
                                     <i data-lucide="crown" class="w-4 h-4 fill-amber-600"></i>
-                                    3回 パーフェクトでゲット！
+                                    正解率90%以上を 3回でゲット！
                                 </div>
                             </div>
                             <div class="bg-white p-2 rounded-full shadow-sm">
                                 <i data-lucide="arrow-right" class="w-6 h-6 text-amber-500"></i>
                             </div>
                         </button>
+
+                        ${challengeWords.length > 0 ? `
+                        <button onclick="startChallengeMode()" class="w-full mb-8 p-6 rounded-3xl bg-gradient-to-br from-red-500 to-rose-600 shadow-xl flex items-center gap-4 hover:scale-[1.02] transition-all group relative overflow-hidden animate-pulse">
+                            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                            <div class="text-left flex-1 relative z-10 pl-2 text-white">
+                                <div class="text-2xl font-black drop-shadow-md flex items-center gap-2">
+                                    🔥 チャレンジBOX
+                                </div>
+                                <div class="text-sm font-bold mt-1 opacity-90">
+                                    あと ${challengeWords.length}もん！ やっつけよう！
+                                </div>
+                            </div>
+                            <div class="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                                <i data-lucide="sword" class="w-8 h-8 text-white"></i>
+                            </div>
+                        </button>` : ''}
+
                         <h2 class="text-2xl font-bold text-slate-700 flex items-center justify-center gap-2">
-                            <i data-lucide="grid" class="w-6 h-6 text-indigo-400"></i> どれで あそぶ？
+                            <i data-lucide="book-open" class="w-6 h-6 text-indigo-400"></i> どれで まなぶ？
                         </h2>
                     </header>
 
@@ -547,7 +580,69 @@
                         </button>
                     </div>
                 </div>
-            </div>`;
+            `;
+
+            // Help Modal
+            if (state.showHelp) {
+                html += `
+                <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onclick="toggleHelp()">
+                    <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-indigo-100 animate-modal-in relative" onclick="event.stopPropagation()">
+                        <button onclick="toggleHelp()" class="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                        
+                        <div class="text-center mb-6">
+                            <div class="inline-block p-3 rounded-full bg-indigo-100 text-indigo-500 mb-2">
+                                <i data-lucide="book-open" class="w-8 h-8"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-slate-700">あそびかた</h2>
+                        </div>
+
+                        <div class="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                <h3 class="font-bold text-indigo-600 mb-2 flex items-center gap-2">
+                                    <i data-lucide="keyboard" class="w-5 h-5"></i> 
+                                    <ruby><rb>入力</rb><rt>にゅうりょく</rt></ruby>しよう
+                                </h3>
+                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
+                                    <ruby><rb>画面</rb><rt>がめん</rt></ruby>のボタンをおすか、キーボードで<ruby><rb>文字</rb><rt>もじ</rt></ruby>をうってね。<br>
+                                    <span class="text-red-500">★</span><ruby><rb>大文字</rb><rt>おおもじ</rt></ruby>(A,B,C)は、<span class="bg-white px-1 border rounded text-xs">Shift</span>キーをおしながらうってね！
+                                </p>
+                            </div>
+
+                            <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                                <h3 class="font-bold text-yellow-600 mb-2 flex items-center gap-2">
+                                    <i data-lucide="lightbulb" class="w-5 h-5"></i> 
+                                    ヒントをつかう
+                                </h3>
+                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
+                                    <ruby><rb>分</rb><rt>わ</rt></ruby>からないときは、<i data-lucide="lightbulb" class="w-4 h-4 inline text-yellow-500"></i>ボタンをおしてね。<br>
+                                    うすく<ruby><rb>答</rb><rt>こた</rt></ruby>えが<ruby><rb>見</rb><rt>み</rt></ruby>えるよ。
+                                </p>
+                            </div>
+
+                            <div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                <h3 class="font-bold text-amber-600 mb-2 flex items-center gap-2">
+                                    <i data-lucide="crown" class="w-5 h-5"></i> 
+                                    スタンプゲット
+                                </h3>
+                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
+                                    ヒントなしで<ruby><rb>間違</rb><rt>まちが</rt></ruby>えずに<ruby><rb>答</rb><rt>こた</rt></ruby>えると、100<ruby><rb>点</rb><rt>てん</rt></ruby>！<br>
+                                    90<ruby><rb>点</rb><rt>てん</rt></ruby><ruby><rb>以上</rb><rt>いじょう</rt></ruby>を<span class="text-amber-600 text-lg">3<ruby><rb>回</rb><rt>かい</rt></ruby></span>とると、<ruby><rb>特別</rb><rt>とくべつ</rt></ruby>なスタンプがもらえるよ！
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="mt-6">
+                            <button onclick="toggleHelp()" class="w-full py-3 bg-indigo-500 text-white font-bold rounded-xl shadow-md hover:bg-indigo-600 transition-colors">
+                                わかった！
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            html += `</div>`;
             app.innerHTML = html;
         }
 
@@ -570,7 +665,6 @@
                         <div class="w-10"></div>
                     </div>
 
-                    <!-- Progress Bar -->
                     <div class="mb-6 bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100">
                         <div class="flex justify-between items-end mb-2">
                             <span class="text-sm font-bold text-amber-800">あつめた数</span>
@@ -642,7 +736,17 @@
         }
 
         function renderGame(currentUser) {
-            const cat = DATA[state.currentCategory];
+            let cat = DATA[state.currentCategory];
+            if (state.currentCategory === 'challenge_mode') {
+                const challengeWords = state.allUsersData[state.currentUserId].challengeWords || [];
+                cat = {
+                    id: 'challenge_mode',
+                    label: 'チャレンジBOX',
+                    color: 'from-red-500 to-rose-600',
+                    words: challengeWords
+                };
+            }
+
             const currentWordData = cat.words[state.questionIndex];
             const sizeClass = getSlotSizeClass(currentWordData.en.length);
             const progressPercent = ((state.questionIndex) / cat.words.length) * 100;
@@ -691,7 +795,7 @@
             state.answerSlots.forEach((letter, i) => {
                 const targetChar = currentWordData.en[i];
                 const isWrong = letter && letter.char !== targetChar;
-                const isSpace = letter && letter.char === ' '; // 初期配置されたスペース
+                const isSpace = letter && letter.char === ' '; 
 
                 if (state.isCorrect) {
                     html += `<div class="font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-purple-600 animate-in zoom-in duration-500 px-0.5 ${sizeClass.text}" style="text-shadow: 0 4px 12px rgba(99, 102, 241, 0.2)">${isSpace ? '&nbsp;' : letter.char}</div>`;
@@ -710,7 +814,7 @@
             html += `</div></div></div>
             
             <div class="w-full p-4">
-                <p class="text-center text-slate-400 text-sm mb-4 font-bold tracking-widest">TAP LETTERS</p>
+                <p class="text-center text-slate-400 text-sm mb-4 font-bold tracking-widest">TAP or TYPE</p>
                 <div class="flex flex-wrap justify-center gap-3">`;
             
             state.poolLetters.forEach((letter) => {
@@ -732,6 +836,7 @@
                     <button onclick="nextQuestion()" class="w-full py-5 bg-green-500 text-white rounded-2xl font-bold text-2xl shadow-xl border-b-8 border-green-600 active:border-b-0 active:translate-y-2 flex items-center justify-center gap-3 transition-all hover:bg-green-400">
                         <span>NEXT</span> <i data-lucide="arrow-right" class="w-8 h-8"></i>
                     </button>
+                    <p class="text-center text-green-700 text-xs font-bold mt-2">Press Enter</p>
                 </div>`;
             }
 
@@ -740,40 +845,67 @@
         }
 
         function renderResult(user, progress) {
-            const cat = DATA[state.currentCategory];
-            const remaining = Math.max(0, 3 - (progress[cat.id]?.perfectCount || 0));
-            const { isPerfect, canGetStamp } = state.resultInfo;
+            let catLabel = "";
+            let catId = state.currentCategory;
+            
+            // チャレンジモードの残り数をリアルタイム取得
+            const challengeRemaining = (state.allUsersData[state.currentUserId].challengeWords || []).length;
+
+            if (state.currentCategory === 'challenge_mode') {
+                catLabel = "チャレンジBOX";
+            } else {
+                catLabel = DATA[state.currentCategory].label.split('(')[0];
+            }
+
+            const { isPass, score, canGetStamp } = state.resultInfo;
+
+            // アイコン表示ロジックの分岐
+            let iconHtml = '';
+
+            if (state.currentCategory === 'challenge_mode') {
+                // --- チャレンジモードの場合 ---
+                if (challengeRemaining === 0) {
+                    // 完食！
+                    iconHtml = `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎉</span><span class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-white font-black px-4 py-1 rounded-full text-lg shadow-md whitespace-nowrap border-2 border-yellow-200">空っぽ！</span></div>`;
+                } else {
+                    // まだ残ってる
+                    iconHtml = `<div class="relative"><i data-lucide="layers" class="w-24 h-24 text-orange-400 fill-orange-100 animate-bounce"></i><span class="absolute -bottom-2 -right-2 bg-red-500 text-white font-bold px-3 py-1 rounded-full text-sm shadow-md whitespace-nowrap border-2 border-white">あと ${challengeRemaining} もん</span></div>`;
+                }
+            } else {
+                // --- 通常モードの場合 ---
+                if (canGetStamp) {
+                    iconHtml = `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎁</span><i data-lucide="sparkles" class="absolute -top-4 -right-4 w-12 h-12 text-yellow-300 animate-ping"></i></div>`; 
+                } else if (isPass) {
+                    iconHtml = `<div class="relative"><i data-lucide="trophy" class="w-24 h-24 text-yellow-400 fill-yellow-100 animate-bounce"></i><span class="absolute -bottom-2 -right-2 bg-red-500 text-white font-bold px-2 py-1 rounded-full text-xs shadow-md border-2 border-white">${score}%</span></div>`;
+                } else {
+                    iconHtml = `<i data-lucide="thumbs-up" class="w-24 h-24 text-slate-400 fill-slate-100 animate-bounce"></i>`;
+                }
+            }
 
             let html = `
             <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4 w-full">
                 <div class="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-xl border-4 border-yellow-200 relative overflow-hidden">
                     <div class="mb-6 flex justify-center relative z-10">
-                        ${canGetStamp 
-                            ? `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎁</span><i data-lucide="sparkles" class="absolute -top-4 -right-4 w-12 h-12 text-yellow-300 animate-ping"></i></div>` 
-                            : (isPerfect 
-                                ? `<i data-lucide="trophy" class="w-24 h-24 text-yellow-400 fill-yellow-100 animate-bounce"></i>` // Perfectの場合
-                                : `<i data-lucide="thumbs-up" class="w-24 h-24 text-orange-500 fill-orange-100 animate-bounce"></i>` // 通常クリアの場合（オレンジに変更）
-                              )
-                        }
+                        ${iconHtml}
                     </div>
                     
-                    ${isPerfect 
-                        ? `<h2 class="text-4xl font-black text-yellow-500 mb-2 drop-shadow-sm">Perfect!!</h2>` 
+                    ${isPass 
+                        ? `<h2 class="text-4xl font-black text-yellow-500 mb-2 drop-shadow-sm">Great!!</h2>` 
                         : `<h2 class="text-3xl font-bold text-slate-800 mb-2">Good Job!</h2>`
                     }
                     
                     <p class="text-lg text-slate-600 font-bold mb-6">
-                        「${cat.label.split('(')[0]}」<br/>
-                        ${isPerfect ? `かんぺき！すごい！` : `クリア！`}
+                        「${catLabel}」<br/>
+                        ${isPass ? `よくできたね！` : `最後まで がんばった！`}
                     </p>
 
-                    ${isPerfect && !canGetStamp ? `
+                    ${isPass && !canGetStamp && state.currentCategory !== 'challenge_mode' ? `
                     <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
                         <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
-                            <i data-lucide="sparkles" class="w-5 h-5"></i><span>おめでとう！</span><i data-lucide="sparkles" class="w-5 h-5"></i>
+                            <i data-lucide="sparkles" class="w-5 h-5"></i><span>正解率 ${score}%！</span><i data-lucide="sparkles" class="w-5 h-5"></i>
                         </div>
-                        <p class="text-slate-700 font-bold">ヒントなしで 全問クリアだよ🏅</p>
-                        <p class="text-sm text-slate-500 font-bold mt-2">あと ${remaining}かいで<br/>スタンプ ゲット！</p>
+                        <p class="text-slate-700 font-bold">ごうかく！</p>
+                        <p class="text-sm text-slate-500 font-bold mt-2">あと ${Math.max(0, 3 - progress[catId].perfectCount)}かいで<br/>スタンプ ゲット！</p>
                     </div>` : ''}
 
                     ${canGetStamp ? `
@@ -783,11 +915,12 @@
                         </button>
                     </div>` : `
                     <div class="flex flex-col gap-3 relative z-10">
-                        <button onclick="startCategory('${cat.id}')" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                        ${state.currentCategory !== 'challenge_mode' ? 
+                        `<button onclick="startCategory('${catId}')" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
                             <i data-lucide="refresh-ccw" class="w-5 h-5"></i> もういちど やる
-                        </button>
+                        </button>` : ''}
                         <button onclick="updateScreen('home'); playTone('tap')" class="w-full py-4 rounded-xl bg-slate-200 text-slate-700 font-bold text-lg hover:bg-slate-300 transition-colors flex items-center justify-center gap-2">
-                            <i data-lucide="home" class="w-5 h-5"></i> ほかの カテゴリ
+                            <i data-lucide="home" class="w-5 h-5"></i> ホームへ もどる
                         </button>
                     </div>`}
                 </div>
@@ -795,8 +928,7 @@
             app.innerHTML = html;
         }
 
-        function renderHistory() {
-            const history = (state.currentUserId && state.allUsersData[state.currentUserId]) ? state.allUsersData[state.currentUserId].history : [];
+        function renderHistory(history) {
             let html = `
             <div class="min-h-screen bg-slate-50 p-4 w-full">
                 <div class="max-w-md mx-auto pt-2 h-full flex flex-col">
@@ -805,7 +937,7 @@
                             <i data-lucide="arrow-left" class="w-6 h-6"></i>
                         </button>
                         <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2">
-                            <i data-lucide="history" class="w-6 h-6 text-indigo-500"></i> あそんだ きろく
+                            <i data-lucide="history" class="w-6 h-6 text-indigo-500"></i> がくしゅう きろく
                         </h2>
                         <div class="w-10"></div>
                     </div>
@@ -823,7 +955,13 @@
                 html += `<div class="h-40 flex items-center justify-center text-slate-400 font-bold">まだ きろくが ないよ</div>`;
             } else {
                 history.forEach(record => {
-                    const cat = DATA[record.categoryId];
+                    let cat = null;
+                    if (record.categoryId === 'challenge_mode') {
+                        cat = { label: 'チャレンジBOX', color: 'from-red-400 to-red-500', words: [{emoji: '🔥'}] };
+                    } else {
+                        cat = DATA[record.categoryId];
+                    }
+                    
                     html += `
                     <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                         <div class="w-12 h-12 rounded-lg bg-gradient-to-br ${cat?.color || 'from-slate-300 to-slate-400'} flex items-center justify-center text-2xl text-white">
@@ -833,7 +971,7 @@
                             <div class="font-bold text-slate-700">${cat?.label.split('(')[0] || 'Unknown'}</div>
                             <div class="text-xs text-slate-400 font-bold">${record.date}</div>
                         </div>
-                        ${record.isPerfect ? `<div class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-md text-xs font-bold border border-yellow-200">パーフェクト</div>` : ''}
+                        ${record.isPass ? `<div class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-md text-xs font-bold border border-yellow-200">OK!</div>` : ''}
                     </div>`;
                 });
             }
@@ -850,6 +988,12 @@
             render();
         }
 
+        function toggleHelp() {
+            playTone('tap');
+            state.showHelp = !state.showHelp;
+            render();
+        }
+
         function selectUser(userId) {
             playTone('tap');
             initAudio();
@@ -863,11 +1007,8 @@
             updateScreen('userEdit');
         }
 
-        // 修正: render()を呼ばず、DOMを直接操作してフォーカス外れを防ぐ
         function updateEditingName(val) { 
             state.editingUser.name = val; 
-            
-            // ボタンの状態だけ更新
             const btn = document.getElementById('saveUserBtn');
             if (btn) {
                 if (val) {
@@ -893,7 +1034,7 @@
             } else {
                 const newUser = { ...state.editingUser, id: Date.now().toString() };
                 state.users.push(newUser);
-                state.allUsersData[newUser.id] = { history: [], progress: {} };
+                state.allUsersData[newUser.id] = { history: [], progress: {}, challengeWords: [] };
                 saveData();
             }
             saveUsers();
@@ -914,25 +1055,44 @@
             playTone('tap');
             state.currentCategory = catId;
             state.questionIndex = 0;
-            state.usedHintInSession = false;
-            state.hasErrorInSession = false;
-            // state.showHint = false; // ヒント状態を維持するためリセットしない
+            
+            state.sessionPerfectWordCount = 0;
+            state.sessionErrorWords = [];
+            
             loadQuestion(catId, 0);
             updateScreen('game');
         }
 
+        function startChallengeMode() {
+            playTone('tap');
+            state.currentCategory = 'challenge_mode';
+            state.questionIndex = 0;
+            state.sessionPerfectWordCount = 0;
+            state.sessionErrorWords = [];
+            
+            loadQuestion('challenge_mode', 0);
+            updateScreen('game');
+        }
+
         function loadQuestion(catId, index) {
-            const cat = DATA[catId];
+            let cat;
+            if (catId === 'challenge_mode') {
+                const words = state.allUsersData[state.currentUserId].challengeWords || [];
+                cat = { words: words };
+            } else {
+                cat = DATA[catId];
+            }
+
             const targetWord = cat.words[index].en;
             
             const letters = targetWord.split('').map((char, i) => ({ char, id: `${char}-${i}-${Math.random()}` }));
-            // スペース以外をプールへ
             state.poolLetters = letters.filter(l => l.char !== ' ').sort(() => Math.random() - 0.5);
-            // スペースは初期配置
             state.answerSlots = letters.map(l => l.char === ' ' ? l : null);
             
             state.isCorrect = false;
-            // state.showHint = false; // ヒント状態を維持するためリセットしない
+            state.currentWordHadError = false;
+            state.currentWordUsedHint = false;
+            state.showHint = false;
             
             setTimeout(() => speak(targetWord), 500);
         }
@@ -942,21 +1102,27 @@
             const letter = state.poolLetters.find(l => l.id === letterId);
             if (!letter) return;
             
-            // 既に配置済みなら無視（念のため）
             if (state.answerSlots.some(l => l?.id === letter.id)) return;
 
             const firstEmptyIndex = state.answerSlots.findIndex(slot => slot === null);
             if (firstEmptyIndex !== -1) {
-                // ミス判定
-                const cat = DATA[state.currentCategory];
+                let cat;
+                if (state.currentCategory === 'challenge_mode') {
+                    cat = { words: state.allUsersData[state.currentUserId].challengeWords };
+                } else {
+                    cat = DATA[state.currentCategory];
+                }
                 const targetChar = cat.words[state.questionIndex].en[firstEmptyIndex];
+                
                 if (letter.char !== targetChar) {
-                    state.hasErrorInSession = true;
+                    state.currentWordHadError = true; 
+                    playTone('error'); 
+                } else {
+                    playTone('tap');
                 }
 
-                playTone('tap');
                 state.answerSlots[firstEmptyIndex] = letter;
-                render(); // 再描画
+                render();
                 checkAnswer();
             }
         }
@@ -964,7 +1130,7 @@
         function handleAnswerClick(index) {
             if (state.isCorrect) return;
             const slot = state.answerSlots[index];
-            if (slot && slot.char === ' ') return; // スペースは消せない
+            if (slot && slot.char === ' ') return;
             
             playTone('remove');
             state.answerSlots[index] = null;
@@ -975,7 +1141,7 @@
             if (!state.showHint) {
                 playTone('hint');
                 state.showHint = true;
-                state.usedHintInSession = true; // ヒントを使ったフラグを立てる（Perfect判定用）
+                state.currentWordUsedHint = true; 
                 render();
             } else {
                 state.showHint = false;
@@ -984,18 +1150,45 @@
         }
 
         function handleSpeak() {
-            const word = DATA[state.currentCategory].words[state.questionIndex].en;
+            let cat;
+            if (state.currentCategory === 'challenge_mode') {
+                cat = { words: state.allUsersData[state.currentUserId].challengeWords };
+            } else {
+                cat = DATA[state.currentCategory];
+            }
+            const word = cat.words[state.questionIndex].en;
             speak(word);
         }
 
         function checkAnswer() {
-            const cat = DATA[state.currentCategory];
+            let cat;
+            if (state.currentCategory === 'challenge_mode') {
+                cat = { words: state.allUsersData[state.currentUserId].challengeWords };
+            } else {
+                cat = DATA[state.currentCategory];
+            }
             const targetWord = cat.words[state.questionIndex].en;
             const currentAnswer = state.answerSlots.map(l => l ? l.char : '').join('');
 
             if (state.answerSlots.every(s => s !== null) && currentAnswer === targetWord) {
                 playTone('correct');
                 state.isCorrect = true;
+                
+                if (!state.currentWordUsedHint && !state.currentWordHadError) {
+                    state.sessionPerfectWordCount++;
+                    if (state.currentCategory === 'challenge_mode') {
+                        // nextQuestionで処理
+                    }
+
+                } else if (!state.currentWordUsedHint && state.currentWordHadError) {
+                    if (state.currentCategory !== 'challenge_mode') {
+                        const alreadyIn = state.sessionErrorWords.some(w => w.en === cat.words[state.questionIndex].en);
+                        if (!alreadyIn) {
+                            state.sessionErrorWords.push(cat.words[state.questionIndex]);
+                        }
+                    }
+                }
+
                 render();
                 setTimeout(() => speak("Great! " + targetWord), 300);
             }
@@ -1003,20 +1196,46 @@
 
         function nextQuestion() {
             playTone('tap');
-            const cat = DATA[state.currentCategory];
-            if (state.questionIndex + 1 < cat.words.length) {
+            let cat;
+            if (state.currentCategory === 'challenge_mode') {
+                cat = { words: state.allUsersData[state.currentUserId].challengeWords };
+            } else {
+                cat = DATA[state.currentCategory];
+            }
+
+            if (state.currentCategory === 'challenge_mode' && state.isCorrect) {
+                if (!state.currentWordUsedHint && !state.currentWordHadError) {
+                    const solvedWordEn = cat.words[state.questionIndex].en;
+                    const user = state.allUsersData[state.currentUserId];
+                    user.challengeWords = user.challengeWords.filter(w => w.en !== solvedWordEn);
+                    state.questionIndex--; 
+                    saveData();
+                }
+            }
+
+            let currentWordsLength = 0;
+            if (state.currentCategory === 'challenge_mode') {
+                currentWordsLength = state.allUsersData[state.currentUserId].challengeWords.length;
+            } else {
+                currentWordsLength = DATA[state.currentCategory].words.length;
+            }
+
+            if (state.questionIndex + 1 < currentWordsLength) {
                 state.questionIndex++;
                 loadQuestion(state.currentCategory, state.questionIndex);
                 render();
             } else {
-                // Complete
-                // playTone()はrenderResult後、条件に応じて呼ぶか、ここで呼ぶか
-                // ここでisPerfect判定を行う
-                const isPerfect = !state.usedHintInSession && !state.hasErrorInSession;
+                // Complete Logic
+                let accuracy = 0;
+                if (currentWordsLength > 0) {
+                     accuracy = Math.round((state.sessionPerfectWordCount / currentWordsLength) * 100);
+                } else {
+                    accuracy = 100;
+                }
+
+                const isPass = accuracy >= 90;
                 
-                // 音声分岐
-                if (isPerfect) {
-                    // スタンプゲットの可能性もあるが、一旦Perfect音で祝福（スタンプゲット時は後でCrown音がなる）
+                if (isPass) {
                     playTone('perfect');
                 } else {
                     playTone('complete');
@@ -1024,17 +1243,21 @@
 
                 const now = new Date();
                 const today = now.toLocaleDateString('ja-JP') + ' ' + now.toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
-                
                 const user = state.allUsersData[state.currentUserId];
-                user.history.unshift({ date: today, categoryId: state.currentCategory, isPerfect });
-                
-                // 履歴上限チェック
-                if (user.history.length > HISTORY_LIMIT) {
-                    user.history = user.history.slice(0, HISTORY_LIMIT);
+                user.history.unshift({ date: today, categoryId: state.currentCategory, isPass });
+                if (user.history.length > HISTORY_LIMIT) user.history = user.history.slice(0, HISTORY_LIMIT);
+
+                if (state.currentCategory !== 'challenge_mode') {
+                    state.sessionErrorWords.forEach(word => {
+                        const exists = user.challengeWords.some(w => w.en === word.en);
+                        if (!exists) {
+                            user.challengeWords.push(word);
+                        }
+                    });
                 }
                 
                 let canGetStamp = false;
-                if (isPerfect) {
+                if (state.currentCategory !== 'challenge_mode' && isPass) {
                     if (!user.progress[state.currentCategory]) {
                         user.progress[state.currentCategory] = { perfectCount: 0, stamp: null };
                     }
@@ -1042,13 +1265,12 @@
                         user.progress[state.currentCategory].perfectCount += 1;
                         if (user.progress[state.currentCategory].perfectCount >= 3) {
                             canGetStamp = true;
-                            // スタンプゲットの音は少し遅らせて特別感を出す
                             setTimeout(() => playTone('crown'), 1500); 
                         }
                     }
                 }
                 saveData();
-                state.resultInfo = { isPerfect, canGetStamp };
+                state.resultInfo = { isPass, score: accuracy, canGetStamp };
                 updateScreen('result');
             }
         }
@@ -1071,11 +1293,51 @@
             render();
         }
 
+        // --- 7. キーボード入力対応 (Updated for strict case matching) ---
+        window.addEventListener('keydown', (e) => {
+            if (state.screen !== 'game') return;
+            
+            if (state.isCorrect) {
+                if (e.key === 'Enter') {
+                    nextQuestion();
+                }
+                return;
+            }
+
+            if (e.key === 'Backspace') {
+                for (let i = state.answerSlots.length - 1; i >= 0; i--) {
+                    const slot = state.answerSlots[i];
+                    if (slot && slot.char !== ' ') {
+                        handleAnswerClick(i); 
+                        return;
+                    }
+                }
+                return;
+            }
+
+            // アルファベット入力 (1文字)
+            // 以前は toLowerCase() で統一していましたが、
+            // 今回は e.key (入力された文字そのまま) を使って完全一致判定します。
+            // つまり 'A' (Shift+a) と 'a' は区別されます。
+            if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
+                const inputChar = e.key; 
+                
+                const targetLetter = state.poolLetters.find(l => {
+                    const isUsed = state.answerSlots.some(slot => slot?.id === l.id);
+                    // 完全一致で判定 (l.char === inputChar)
+                    return !isUsed && l.char === inputChar;
+                });
+
+                if (targetLetter) {
+                    handlePoolClick(targetLetter.id);
+                }
+            }
+        });
+
         // 初期化
         initData();
         render();
 
     </script>
 </body>
-
 </html>
