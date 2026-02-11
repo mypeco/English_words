@@ -1058,6 +1058,7 @@
             
             state.sessionPerfectWordCount = 0;
             state.sessionErrorWords = [];
+            state.showHint = false; // ★単元開始時にリセット
             
             loadQuestion(catId, 0);
             updateScreen('game');
@@ -1069,6 +1070,7 @@
             state.questionIndex = 0;
             state.sessionPerfectWordCount = 0;
             state.sessionErrorWords = [];
+            state.showHint = false; // ★チャレンジ開始時にリセット
             
             loadQuestion('challenge_mode', 0);
             updateScreen('game');
@@ -1091,8 +1093,9 @@
             
             state.isCorrect = false;
             state.currentWordHadError = false;
-            state.currentWordUsedHint = false;
-            state.showHint = false;
+
+            // state.showHint = false; // ★削除：ここを消してヒント状態を維持
+            state.currentWordUsedHint = state.showHint; // ★追加：ヒントがONなら「使用済み」とする
             
             setTimeout(() => speak(targetWord), 500);
         }
@@ -1316,9 +1319,6 @@
             }
 
             // アルファベット入力 (1文字)
-            // 以前は toLowerCase() で統一していましたが、
-            // 今回は e.key (入力された文字そのまま) を使って完全一致判定します。
-            // つまり 'A' (Shift+a) と 'a' は区別されます。
             if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
                 const inputChar = e.key; 
                 
