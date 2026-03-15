@@ -482,6 +482,10 @@
         }
 
         function renderHome(user, progress, challengeWords) {
+            // ★変更：ユーザーデータを取得し、まだ読んでいない場合のみアニメーションを有効にする
+            const userData = state.allUsersData[state.currentUserId];
+            const isFirstTime = (!userData.history || userData.history.length === 0) && !userData.hasReadHelp;
+
             let html = `
             <div class="min-h-screen bg-slate-50 p-4 w-full relative">
                 <div class="max-w-md mx-auto pt-2">
@@ -490,7 +494,7 @@
                             <i data-lucide="arrow-left" class="w-5 h-5"></i> <span class="text-xs">もどる</span>
                         </button>
                         
-                        <button onclick="toggleHelp()" class="flex items-center gap-1 px-3 py-2 bg-indigo-50 rounded-full text-indigo-600 font-bold shadow-sm hover:bg-indigo-100 border border-indigo-100">
+                        <button onclick="openHelp()" class="flex items-center gap-1 px-3 py-2 rounded-full font-bold shadow-sm transition-all ${isFirstTime ? 'bg-yellow-400 text-white border border-yellow-500 animate-bounce ring-4 ring-yellow-400/50' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100'}">
                             <i data-lucide="help-circle" class="w-4 h-4"></i> <span class="text-xs">つかいかた</span>
                         </button>
 
@@ -548,8 +552,20 @@
                 
                 group.ids.forEach(catId => {
                     const cat = DATA[catId];
-                    const p = progress[cat.id] || { perfectCount: 0, hasCrown: false };
+                    // ★変更：extraBadgeCount を受け取る
+                    const p = progress[cat.id] || { perfectCount: 0, stamp: null, extraBadgeCount: 0 };
                     const remainingForCrown = Math.max(0, 3 - p.perfectCount);
+                    
+                    // ★追加：固定の「👑」をカウント分だけつなげて1列にする
+                    let badgesHtml = '';
+                    if (p.stamp) {
+                        const totalCrowns = 1 + (p.extraBadgeCount || 0);
+                        let crowns = '';
+                        for (let i = 0; i < totalCrowns; i++) {
+                            crowns += '👑';
+                        }
+                        badgesHtml = `<span class="text-base animate-shine drop-shadow-sm ml-1 tracking-tighter whitespace-nowrap">${crowns}</span>`;
+                    }
                     
                     html += `
                     <button onclick="startCategory('${cat.id}')" class="relative w-full p-4 rounded-2xl shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 text-left bg-gradient-to-r ${cat.color} text-white group overflow-hidden h-full border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
@@ -557,8 +573,7 @@
                             <div class="flex-1 min-w-0">
                                 <span class="text-lg font-bold flex flex-wrap items-center gap-1 leading-tight mb-1">
                                     ${cat.label.split('(')[0]}
-                                    ${p.stamp ? `<span class="text-xl animate-shine drop-shadow-sm ml-1">👑</span>` : ''}
-                                </span>
+                                    ${badgesHtml} </span>
                                 <div class="text-xs opacity-90 font-medium flex flex-wrap items-center gap-1">
                                     <span class="bg-black/20 px-1.5 py-0.5 rounded-md whitespace-nowrap">${cat.words.length}もん</span>
                                     ${!p.stamp && p.perfectCount > 0 ? `<span class="bg-yellow-400/90 text-yellow-900 px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold text-[10px]">あと${remainingForCrown}かい</span>` : ''}
@@ -595,7 +610,7 @@
                             <div class="inline-block p-3 rounded-full bg-indigo-100 text-indigo-500 mb-2">
                                 <i data-lucide="book-open" class="w-8 h-8"></i>
                             </div>
-                            <h2 class="text-2xl font-bold text-slate-700">あそびかた</h2>
+                            <h2 class="text-2xl font-bold text-slate-700">つかいかた</h2>
                         </div>
 
                         <div class="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
@@ -629,6 +644,17 @@
                                 <p class="text-sm font-bold text-slate-600 leading-relaxed">
                                     ヒントなしで<ruby><rb>間違</rb><rt>まちが</rt></ruby>えずに<ruby><rb>答</rb><rt>こた</rt></ruby>えると、100<ruby><rb>点</rb><rt>てん</rt></ruby>！<br>
                                     90<ruby><rb>点</rb><rt>てん</rt></ruby><ruby><rb>以上</rb><rt>いじょう</rt></ruby>を<span class="text-amber-600 text-lg">3<ruby><rb>回</rb><rt>かい</rt></ruby></span>とると、<ruby><rb>特別</rb><rt>とくべつ</rt></ruby>なスタンプがもらえるよ！
+                                </p>
+                            </div>
+
+                            <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                                <h3 class="font-bold text-red-600 mb-2 flex items-center gap-2">
+                                    <i data-lucide="flame" class="w-5 h-5"></i> 
+                                    チャレンジBOX
+                                </h3>
+                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
+                                    <ruby><rb>間違</rb><rt>まちが</rt></ruby>えた<ruby><rb>問題</rb><rt>もんだい</rt></ruby>は BOXにたまるよ。<br>
+                                    ぜんぶ やっつけよう！
                                 </p>
                             </div>
                         </div>
@@ -848,7 +874,6 @@
             let catLabel = "";
             let catId = state.currentCategory;
             
-            // チャレンジモードの残り数をリアルタイム取得
             const challengeRemaining = (state.allUsersData[state.currentUserId].challengeWords || []).length;
 
             if (state.currentCategory === 'challenge_mode') {
@@ -857,7 +882,7 @@
                 catLabel = DATA[state.currentCategory].label.split('(')[0];
             }
 
-            const { isPass, score, canGetStamp } = state.resultInfo;
+            const { isPass, score, canGetStamp, gotExtraBadge } = state.resultInfo;
 
             // アイコン表示ロジックの分岐
             let iconHtml = '';
@@ -900,13 +925,21 @@
                     </p>
 
                     ${isPass && !canGetStamp && state.currentCategory !== 'challenge_mode' ? `
-                    <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
-                        <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
-                            <i data-lucide="sparkles" class="w-5 h-5"></i><span>正解率 ${score}%！</span><i data-lucide="sparkles" class="w-5 h-5"></i>
-                        </div>
-                        <p class="text-slate-700 font-bold">ごうかく！</p>
-                        <p class="text-sm text-slate-500 font-bold mt-2">あと ${Math.max(0, 3 - progress[catId].perfectCount)}かいで<br/>スタンプ ゲット！</p>
-                    </div>` : ''}
+                        ${gotExtraBadge ? `
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
+                            <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
+                                <i data-lucide="star" class="w-6 h-6 fill-yellow-400"></i><span class="text-xl">100点 まんてん！</span><i data-lucide="star" class="w-6 h-6 fill-yellow-400"></i>
+                            </div>
+                            <p class="text-slate-700 font-bold mt-2">メニューの バッジが ふえたよ！</p>
+                        </div>` : `
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
+                            <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
+                                <i data-lucide="sparkles" class="w-5 h-5"></i><span>正解率 ${score}%！</span><i data-lucide="sparkles" class="w-5 h-5"></i>
+                            </div>
+                            <p class="text-slate-700 font-bold">ごうかく！</p>
+                            ${progress[catId]?.stamp ? '' : `<p class="text-sm text-slate-500 font-bold mt-2">あと ${Math.max(0, 3 - progress[catId].perfectCount)}かいで<br/>スタンプ ゲット！</p>`}
+                        </div>`}
+                    ` : ''}
 
                     ${canGetStamp ? `
                     <div class="mb-6 animate-in zoom-in duration-500">
@@ -991,6 +1024,17 @@
         function toggleHelp() {
             playTone('tap');
             state.showHelp = !state.showHelp;
+            render();
+        }
+
+        function openHelp() {
+            playTone('tap');
+            const user = state.allUsersData[state.currentUserId];
+            if (user) {
+                user.hasReadHelp = true;
+                saveData();
+            }
+            state.showHelp = true;
             render();
         }
 
@@ -1236,10 +1280,14 @@
                     accuracy = 100;
                 }
 
+                // ★変更：合格ラインと100点満点の判定を分ける
                 const isPass = accuracy >= 90;
+                const isPerfect = accuracy === 100; 
                 
-                if (isPass) {
+                if (isPerfect) {
                     playTone('perfect');
+                } else if (isPass) {
+                    playTone('complete');
                 } else {
                     playTone('complete');
                 }
@@ -1260,20 +1308,39 @@
                 }
                 
                 let canGetStamp = false;
-                if (state.currentCategory !== 'challenge_mode' && isPass) {
-                    if (!user.progress[state.currentCategory]) {
-                        user.progress[state.currentCategory] = { perfectCount: 0, stamp: null };
+                let gotExtraBadge = false; // ★追加：バッジが増えたかのフラグ
+                const catId = state.currentCategory;
+
+                // ★変更：バッジ追加のロジック
+                if (catId !== 'challenge_mode') {
+                    if (!user.progress[catId]) {
+                        user.progress[catId] = { perfectCount: 0, stamp: null, extraBadgeCount: 0 };
                     }
-                    if (!user.progress[state.currentCategory].stamp) {
-                        user.progress[state.currentCategory].perfectCount += 1;
-                        if (user.progress[state.currentCategory].perfectCount >= 3) {
-                            canGetStamp = true;
-                            setTimeout(() => playTone('crown'), 1500); 
+                    if (user.progress[catId].extraBadgeCount === undefined) {
+                        user.progress[catId].extraBadgeCount = 0;
+                    }
+
+                    if (!user.progress[catId].stamp) {
+                        if (isPass) {
+                            user.progress[catId].perfectCount += 1;
+                            if (user.progress[catId].perfectCount >= 3) {
+                                canGetStamp = true;
+                                setTimeout(() => playTone('crown'), 1500); 
+                            }
+                        }
+                    } else {
+                        // 既にスタンプがあり、100点満点の場合（合計5個＝追加分の上限を4とする）
+                        const MAX_EXTRA_BADGES = 4;
+                        if (isPerfect && user.progress[catId].extraBadgeCount < MAX_EXTRA_BADGES) {
+                            user.progress[catId].extraBadgeCount += 1;
+                            gotExtraBadge = true;
+                            setTimeout(() => playTone('crown'), 500); 
                         }
                     }
                 }
                 saveData();
-                state.resultInfo = { isPass, score: accuracy, canGetStamp };
+                // ★変更：gotExtraBadge をリザルトに渡す
+                state.resultInfo = { isPass, score: accuracy, canGetStamp, gotExtraBadge };
                 updateScreen('result');
             }
         }
