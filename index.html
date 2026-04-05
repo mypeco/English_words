@@ -38,7 +38,6 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        /* ルビの調整 */
         ruby {
             font-family: 'M PLUS Rounded 1c', sans-serif;
             ruby-align: center;
@@ -46,16 +45,52 @@
         rt {
             font-size: 0.6em;
             font-weight: normal;
-            color: #64748b; /* slate-500 */
+            color: #64748b;
             margin-bottom: -0.2em;
         }
-        /* ポップアップ用アニメーション */
         @keyframes modal-in {
             from { opacity: 0; transform: scale(0.95) translateY(10px); }
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
         .animate-modal-in {
             animation: modal-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        button .bestshot-wrap svg {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        @keyframes slide-in-right {
+            from { transform: translateX(100%); }
+            to   { transform: translateX(0); }
+        }
+        .animate-slide-in-right {
+            animation: slide-in-right 0.25s cubic-bezier(0.16,1,0.3,1) forwards;
+        }
+        @keyframes particle-fall {
+            0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            80%  { opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        .karuta-particle {
+            position: fixed;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 9999;
+            animation: particle-fall linear forwards;
         }
     </style>
 </head>
@@ -67,38 +102,29 @@
         // --- 1. データ定義 (全28カテゴリ) ---
         
         const DATA = {
-            // --- Group 1: 👑 はじめよう (Basics) ---
             num1: { id: 'num1', label: 'すうじ① (1-10)', color: 'from-orange-400 to-amber-500', words: [ { en: 'one', jp: '1', emoji: '1️⃣' }, { en: 'two', jp: '2', emoji: '2️⃣' }, { en: 'three', jp: '3', emoji: '3️⃣' }, { en: 'four', jp: '4', emoji: '4️⃣' }, { en: 'five', jp: '5', emoji: '5️⃣' }, { en: 'six', jp: '6', emoji: '6️⃣' }, { en: 'seven', jp: '7', emoji: '7️⃣' }, { en: 'eight', jp: '8', emoji: '8️⃣' }, { en: 'nine', jp: '9', emoji: '9️⃣' }, { en: 'ten', jp: '10', emoji: '🔟' } ] },
             colors: { id: 'colors', label: 'いろ (Colors)', color: 'from-amber-400 to-yellow-500', words: [ { en: 'red', jp: '<ruby>赤<rt>あか</rt></ruby>', emoji: '🔴' }, { en: 'blue', jp: '<ruby>青<rt>あお</rt></ruby>', emoji: '🔵' }, { en: 'yellow', jp: '<ruby>黄<rt>きいろ</rt></ruby>', emoji: '🟡' }, { en: 'green', jp: '<ruby>緑<rt>みどり</rt></ruby>', emoji: '🟢' }, { en: 'orange', jp: 'オレンジ', emoji: '🟠' }, { en: 'pink', jp: 'ピンク', emoji: '💗' }, { en: 'purple', jp: '<ruby>紫<rt>むらさき</rt></ruby>', emoji: '🟣' }, { en: 'black', jp: '<ruby>黒<rt>くろ</rt></ruby>', emoji: '⚫' }, { en: 'white', jp: '<ruby>白<rt>しろ</rt></ruby>', emoji: '⚪' }, { en: 'brown', jp: '<ruby>茶色<rt>ちゃいろ</rt></ruby>', emoji: '🟤' }, { en: 'gold', jp: '<ruby>金<rt>きん</rt></ruby>', emoji: '🥇' }, { en: 'silver', jp: '<ruby>銀<rt>ぎん</rt></ruby>', emoji: '🥈' } ] },
             animals: { id: 'animals', label: 'どうぶつ (Animals)', color: 'from-yellow-400 to-lime-500', words: [ { en: 'dog', jp: '<ruby>犬<rt>いぬ</rt></ruby>', emoji: '🐶' }, { en: 'cat', jp: '<ruby>猫<rt>ねこ</rt></ruby>', emoji: '🐱' }, { en: 'rabbit', jp: 'ウサギ', emoji: '🐰' }, { en: 'bird', jp: '<ruby>鳥<rt>とり</rt></ruby>', emoji: '🐦' }, { en: 'fish', jp: '<ruby>魚<rt>さかな</rt></ruby>', emoji: '🐟' }, { en: 'bear', jp: 'クマ', emoji: '🐻' }, { en: 'lion', jp: 'ライオン', emoji: '🦁' }, { en: 'tiger', jp: 'トラ', emoji: '🐯' }, { en: 'elephant', jp: 'ゾウ', emoji: '🐘' }, { en: 'monkey', jp: 'サル', emoji: '🐵' }, { en: 'panda', jp: 'パンダ', emoji: '🐼' }, { en: 'horse', jp: 'ウマ', emoji: '🐴' }, { en: 'cow', jp: 'ウシ', emoji: '🐮' }, { en: 'pig', jp: 'ブタ', emoji: '🐷' } ] },
             food: { id: 'food', label: 'たべもの (Food)', color: 'from-lime-500 to-green-500', words: [ { en: 'apple', jp: 'リンゴ', emoji: '🍎' }, { en: 'banana', jp: 'バナナ', emoji: '🍌' }, { en: 'orange', jp: 'オレンジ', emoji: '🍊' }, { en: 'grape', jp: 'ブドウ', emoji: '🍇' }, { en: 'peach', jp: 'モモ', emoji: '🍑' }, { en: 'rice', jp: '<ruby>ご飯<rt>はん</rt></ruby>', emoji: '🍚' }, { en: 'bread', jp: 'パン', emoji: '🍞' }, { en: 'egg', jp: '<ruby>卵<rt>たまご</rt></ruby>', emoji: '🥚' }, { en: 'curry', jp: 'カレー', emoji: '🍛' }, { en: 'hamburger', jp: 'ハンバーガー', emoji: '🍔' }, { en: 'pizza', jp: 'ピザ', emoji: '🍕' }, { en: 'cake', jp: 'ケーキ', emoji: '🍰' }, { en: 'ice cream', jp: 'アイスクリーム', emoji: '🍦' } ] },
             family: { id: 'family', label: 'かぞく (Family)', color: 'from-pink-400 to-rose-500', words: [ { en: 'family', jp: '<ruby>家族<rt>かぞく</rt></ruby>', emoji: '👨‍👩‍👧‍👦' }, { en: 'father', jp: '<ruby>父<rt>ちち</rt></ruby>', emoji: '👨' }, { en: 'mother', jp: '<ruby>母<rt>はは</rt></ruby>', emoji: '👩' }, { en: 'brother', jp: '<ruby>兄<rt>あに</rt></ruby>・<ruby>弟<rt>おとうと</rt></ruby>', emoji: '👦' }, { en: 'sister', jp: '<ruby>姉<rt>あね</rt></ruby>・<ruby>妹<rt>いもうと</rt></ruby>', emoji: '👧' }, { en: 'grandfather', jp: '<ruby>祖父<rt>そふ</rt></ruby>', emoji: '👴' }, { en: 'grandmother', jp: '<ruby>祖母<rt>そぼ</rt></ruby>', emoji: '👵' } ] },
             adj2: { id: 'adj2', label: 'きもち (Feelings)', color: 'from-rose-400 to-red-500', words: [ { en: 'happy', jp: '<ruby>幸<rt>しあわ</rt></ruby>せ', emoji: '😄' }, { en: 'sad', jp: '<ruby>悲<rt>かな</rt></ruby>しい', emoji: '😢' }, { en: 'nice', jp: '<ruby>素敵<rt>すてき</rt></ruby>', emoji: '👍' }, { en: 'good', jp: '<ruby>良<rt>よ</rt></ruby>い', emoji: '👌' }, { en: 'fun', jp: '<ruby>楽<rt>たの</rt></ruby>しい', emoji: '😆' }, { en: 'cute', jp: 'かわいい', emoji: '🎀' }, { en: 'beautiful', jp: '<ruby>美<rt>うつく</rt></ruby>しい', emoji: '🌹' }, { en: 'kind', jp: '<ruby>親切<rt>しんせつ</rt></ruby>', emoji: '🤝' }, { en: 'easy', jp: '<ruby>簡単<rt>かんたん</rt></ruby>', emoji: '⭕' }, { en: 'hard', jp: '<ruby>難<rt>むずか</rt></ruby>しい', emoji: '🧱' } ] },
-
-            // --- Group 2: 📅 カレンダーと時間 (Time) ---
             days: { id: 'days', label: 'ようび (Days)', color: 'from-sky-400 to-blue-500', words: [ { en: 'Sunday', jp: '<ruby>日曜日<rt>にちようび</rt></ruby>', emoji: '☀️' }, { en: 'Monday', jp: '<ruby>月曜日<rt>げつようび</rt></ruby>', emoji: '🌙' }, { en: 'Tuesday', jp: '<ruby>火曜日<rt>かようび</rt></ruby>', emoji: '🔥' }, { en: 'Wednesday', jp: '<ruby>水曜日<rt>すいようび</rt></ruby>', emoji: '💧' }, { en: 'Thursday', jp: '<ruby>木曜日<rt>もくようび</rt></ruby>', emoji: '🌳' }, { en: 'Friday', jp: '<ruby>金曜日<rt>きんようび</rt></ruby>', emoji: '✨' }, { en: 'Saturday', jp: '<ruby>土曜日<rt>どようび</rt></ruby>', emoji: '⛰️' } ] },
             months: { id: 'months', label: 'つき (Months)', color: 'from-blue-400 to-indigo-500', words: [ { en: 'January', jp: '<ruby>1月<rt>がつ</rt></ruby>', emoji: '🎍' }, { en: 'February', jp: '<ruby>2月<rt>がつ</rt></ruby>', emoji: '👹' }, { en: 'March', jp: '<ruby>3月<rt>がつ</rt></ruby>', emoji: '🎎' }, { en: 'April', jp: '<ruby>4月<rt>がつ</rt></ruby>', emoji: '🌸' }, { en: 'May', jp: '<ruby>5月<rt>がつ</rt></ruby>', emoji: '🎏' }, { en: 'June', jp: '<ruby>6月<rt>がつ</rt></ruby>', emoji: '☔' }, { en: 'July', jp: '<ruby>7月<rt>がつ</rt></ruby>', emoji: '🎋' }, { en: 'August', jp: '<ruby>8月<rt>がつ</rt></ruby>', emoji: '🌻' }, { en: 'September', jp: '<ruby>9月<rt>がつ</rt></ruby>', emoji: '🎑' }, { en: 'October', jp: '<ruby>10月<rt>がつ</rt></ruby>', emoji: '🎃' }, { en: 'November', jp: '<ruby>11月<rt>がつ</rt></ruby>', emoji: '🍂' }, { en: 'December', jp: '<ruby>12月<rt>がつ</rt></ruby>', emoji: '🎄' } ] },
             seasons: { id: 'seasons', label: 'きせつ (Seasons)', color: 'from-indigo-400 to-violet-500', words: [ { en: 'spring', jp: '<ruby>春<rt>はる</rt></ruby>', emoji: '🌸' }, { en: 'summer', jp: '<ruby>夏<rt>なつ</rt></ruby>', emoji: '🌻' }, { en: 'autumn', jp: '<ruby>秋<rt>あき</rt></ruby>', emoji: '🍁' }, { en: 'winter', jp: '<ruby>冬<rt>ふゆ</rt></ruby>', emoji: '⛄' } ] },
             time1: { id: 'time1', label: 'じかん① (Time 1)', color: 'from-violet-400 to-purple-500', words: [ { en: 'time', jp: '<ruby>時間<rt>じかん</rt></ruby>', emoji: '⏰' }, { en: 'year', jp: '<ruby>年<rt>ねん</rt></ruby>', emoji: '📅' }, { en: 'month', jp: '<ruby>月<rt>つき</rt></ruby>', emoji: '🗓️' }, { en: 'minute', jp: '<ruby>分<rt>ふん</rt></ruby>', emoji: '⏱️' }, { en: 'morning', jp: '<ruby>朝<rt>あさ</rt></ruby>', emoji: '🌅' }, { en: 'afternoon', jp: '<ruby>昼<rt>ひる</rt></ruby>・<ruby>午後<rt>ごご</rt></ruby>', emoji: '☀️' }, { en: 'evening', jp: '<ruby>夕方<rt>ゆうがた</rt></ruby>', emoji: '🌇' }, { en: 'night', jp: '<ruby>夜<rt>よる</rt></ruby>', emoji: '🌙' } ] },
             time2: { id: 'time2', label: 'じかん② (Time 2)', color: 'from-purple-400 to-fuchsia-500', words: [ { en: 'today', jp: '<ruby>今日<rt>きょう</rt></ruby>', emoji: '👇' }, { en: 'tomorrow', jp: '<ruby>明日<rt>あした</rt></ruby>', emoji: '➡️' }, { en: 'yesterday', jp: '<ruby>昨日<rt>きのう</rt></ruby>', emoji: '⬅️' }, { en: 'now', jp: '<ruby>今<rt>いま</rt></ruby>', emoji: '⏱️' }, { en: 'always', jp: 'いつも', emoji: '🔁' }, { en: 'usually', jp: 'たいてい', emoji: '😌' }, { en: 'sometimes', jp: '<ruby>時々<rt>ときどき</rt></ruby>', emoji: '🤔' }, { en: 'never', jp: '<ruby>決<rt>けっ</rt></ruby>して～ない', emoji: '🙅' } ] },
-
-            // --- Group 3: 🏫 学校と生活 (School & Life) ---
             school1: { id: 'school1', label: 'がっこう① (School 1)', color: 'from-teal-400 to-emerald-500', words: [ { en: 'school', jp: '<ruby>学校<rt>がっこう</rt></ruby>', emoji: '🏫' }, { en: 'teacher', jp: '<ruby>先生<rt>せんせい</rt></ruby>', emoji: '👨‍🏫' }, { en: 'student', jp: '<ruby>生徒<rt>せいと</rt></ruby>', emoji: '🎒' }, { en: 'friend', jp: '<ruby>友達<rt>ともだち</rt></ruby>', emoji: '🤝' }, { en: 'class', jp: '<ruby>授業<rt>じゅぎょう</rt></ruby>', emoji: '🔔' }, { en: 'classroom', jp: '<ruby>教室<rt>きょうしつ</rt></ruby>', emoji: '🚪' }, { en: 'gym', jp: '<ruby>体育館<rt>たいいくかん</rt></ruby>', emoji: '🏟️' }, { en: 'library', jp: '<ruby>図書室<rt>としょしつ</rt></ruby>', emoji: '📚' } ] },
             school2: { id: 'school2', label: 'がっこう② (School 2)', color: 'from-emerald-400 to-green-500', words: [ { en: 'notebook', jp: 'ノート', emoji: '📓' }, { en: 'pencil', jp: '<ruby>鉛筆<rt>えんぴつ</rt></ruby>', emoji: '✏️' }, { en: 'eraser', jp: '<ruby>消<rt>け</rt></ruby>しゴム', emoji: '🧼' }, { en: 'pen', jp: 'ペン', emoji: '🖊️' }, { en: 'desk', jp: '<ruby>机<rt>つくえ</rt></ruby>', emoji: '🏫' }, { en: 'chair', jp: '<ruby>椅子<rt>いす</rt></ruby>', emoji: '🪑' }, { en: 'textbook', jp: '<ruby>教科書<rt>きょうかしょ</rt></ruby>', emoji: '📖' }, { en: 'homework', jp: '<ruby>宿題<rt>しゅくだい</rt></ruby>', emoji: '📝' } ] },
             sports: { id: 'sports', label: 'スポーツ (Sports)', color: 'from-green-400 to-teal-600', words: [ { en: 'baseball', jp: '<ruby>野球<rt>やきゅう</rt></ruby>', emoji: '⚾' }, { en: 'soccer', jp: 'サッカー', emoji: '⚽' }, { en: 'basketball', jp: 'バスケットボール', emoji: '🏀' }, { en: 'tennis', jp: 'テニス', emoji: '🎾' }, { en: 'volleyball', jp: 'バレーボール', emoji: '🏐' }, { en: 'swimming', jp: '<ruby>水泳<rt>すいえい</rt></ruby>', emoji: '🏊' }, { en: 'badminton', jp: 'バドミントン', emoji: '🏸' }, { en: 'dance', jp: 'ダンス', emoji: '💃' } ] },
             body: { id: 'body', label: 'からだ (Body)', color: 'from-teal-500 to-cyan-600', words: [ { en: 'head', jp: '<ruby>頭<rt>あたま</rt></ruby>', emoji: '🙆' }, { en: 'face', jp: '<ruby>顔<rt>かお</rt></ruby>', emoji: '☺' }, { en: 'eye', jp: '<ruby>目<rt>め</rt></ruby>', emoji: '👁️' }, { en: 'ear', jp: '<ruby>耳<rt>みみ</rt></ruby>', emoji: '👂' }, { en: 'nose', jp: '<ruby>鼻<rt>はな</rt></ruby>', emoji: '👃' }, { en: 'mouth', jp: '<ruby>口<rt>くち</rt></ruby>', emoji: '👄' }, { en: 'hand', jp: '<ruby>手<rt>て</rt></ruby>', emoji: '✋' }, { en: 'arm', jp: '<ruby>腕<rt>うで</rt></ruby>', emoji: '💪' }, { en: 'leg', jp: '<ruby>脚<rt>あし</rt></ruby>', emoji: '🦵' }, { en: 'foot', jp: '<ruby>足<rt>あし</rt></ruby>', emoji: '🦶' }, { en: 'finger', jp: '<ruby>指<rt>ゆび</rt></ruby>', emoji: '☝️' } ] },
             clothes: { id: 'clothes', label: 'ふく (Clothes)', color: 'from-cyan-500 to-sky-600', words: [ { en: 'cap', jp: '<ruby>帽子<rt>ぼうし</rt></ruby>・キャップ', emoji: '🧢' }, { en: 'hat', jp: '<ruby>帽子<rt>ぼうし</rt></ruby>・ハット', emoji: '👒' }, { en: 'T-shirt', jp: 'Tシャツ', emoji: '👕' }, { en: 'shirt', jp: 'シャツ', emoji: '👔' }, { en: 'shoes', jp: '<ruby>靴<rt>くつ</rt></ruby>', emoji: '👟' }, { en: 'socks', jp: '<ruby>靴下<rt>くつした</rt></ruby>', emoji: '🧦' }, { en: 'bag', jp: 'カバン', emoji: '🎒' }, { en: 'umbrella', jp: '<ruby>傘<rt>かさ</rt></ruby>', emoji: '☂️' } ] },
             drinks: { id: 'drinks', label: 'のみもの (Drinks)', color: 'from-sky-500 to-blue-600', words: [ { en: 'milk', jp: '<ruby>牛乳<rt>ぎゅうにゅう</rt></ruby>', emoji: '🥛' }, { en: 'water', jp: '<ruby>水<rt>みず</rt></ruby>', emoji: '💧' }, { en: 'juice', jp: 'ジュース', emoji: '🍹' }, { en: 'tea', jp: '<ruby>お茶<rt>ちゃ</rt></ruby>', emoji: '🍵' }, { en: 'coffee', jp: 'コーヒー', emoji: '☕' } ] },
-
-            // --- Group 4: 🌍 いろいろな言葉 (World & Actions) ---
             verbs1: { id: 'verbs1', label: 'うごき① (Verbs 1)', color: 'from-purple-400 to-fuchsia-500', words: [ { en: 'play', jp: '<ruby>遊<rt>あそ</rt></ruby>ぶ・する', emoji: '🎮' }, { en: 'go', jp: '<ruby>行<rt>い</rt></ruby>く', emoji: '🚶' }, { en: 'come', jp: '<ruby>来<rt>く</rt></ruby>る', emoji: '🏃' }, { en: 'swim', jp: '<ruby>泳<rt>およ</rt></ruby>ぐ', emoji: '🏊' }, { en: 'run', jp: '<ruby>走<rt>はし</rt></ruby>る', emoji: '💨' }, { en: 'make', jp: '<ruby>作<rt>つく</rt></ruby>る', emoji: '🔨' }, { en: 'use', jp: '<ruby>使<rt>つか</rt></ruby>う', emoji: '💻' }, { en: 'wash', jp: '<ruby>洗<rt>あら</rt></ruby>う', emoji: '🧼' }, { en: 'clean', jp: '<ruby>掃除<rt>そうじ</rt></ruby>する', emoji: '🧹' } ] },
             verbs2: { id: 'verbs2', label: 'うごき② (Verbs 2)', color: 'from-fuchsia-400 to-pink-500', words: [ { en: 'eat', jp: '<ruby>食<rt>た</rt></ruby>べる', emoji: '🍽️' }, { en: 'drink', jp: '<ruby>飲<rt>の</rt></ruby>む', emoji: '🥤' }, { en: 'cook', jp: '<ruby>料理<rt>りょうり</rt></ruby>する', emoji: '🍳' }, { en: 'study', jp: '<ruby>勉強<rt>べんきょう</rt></ruby>する', emoji: '✏️' }, { en: 'watch', jp: '<ruby>見<rt>み</rt></ruby>る', emoji: '📺' }, { en: 'listen', jp: '<ruby>聞<rt>き</rt></ruby>く', emoji: '🎧' }, { en: 'like', jp: '<ruby>好<rt>す</rt></ruby>き', emoji: '❤️' }, { en: 'have', jp: '<ruby>持<rt>も</rt></ruby>っている', emoji: '🤲' }, { en: 'want', jp: '<ruby>欲<rt>ほ</rt></ruby>しい', emoji: '🥺' } ] },
             nature: { id: 'nature', label: 'しぜん (Nature)', color: 'from-pink-400 to-rose-500', words: [ { en: 'sun', jp: '<ruby>太陽<rt>たいよう</rt></ruby>', emoji: '☀️' }, { en: 'moon', jp: '<ruby>月<rt>つき</rt></ruby>', emoji: '🌕' }, { en: 'sky', jp: '<ruby>空<rt>そら</rt></ruby>', emoji: '🌌' }, { en: 'rain', jp: '<ruby>雨<rt>あめ</rt></ruby>', emoji: '☔' }, { en: 'snow', jp: '<ruby>雪<rt>ゆき</rt></ruby>', emoji: '⛄' }, { en: 'cloud', jp: '<ruby>雲<rt>くも</rt></ruby>', emoji: '☁️' }, { en: 'wind', jp: '<ruby>風<rt>かぜ</rt></ruby>', emoji: '🍃' }, { en: 'river', jp: '<ruby>川<rt>かわ</rt></ruby>', emoji: '🏞️' }, { en: 'mountain', jp: '<ruby>山<rt>やま</rt></ruby>', emoji: '⛰️' }, { en: 'sea', jp: '<ruby>海<rt>うみ</rt></ruby>', emoji: '🌊' }, { en: 'flower', jp: '<ruby>花<rt>はな</rt></ruby>', emoji: '🌷' }, { en: 'tree', jp: '<ruby>木<rt>き</rt></ruby>', emoji: '🌳' } ] },
             life1: { id: 'life1', label: 'せいかつ① (Life 1)', color: 'from-rose-400 to-red-500', words: [ { en: 'house', jp: '<ruby>家<rt>いえ</rt></ruby>', emoji: '🏠' }, { en: 'home', jp: '<ruby>家庭<rt>かてい</rt></ruby>・<ruby>家<rt>うち</rt></ruby>', emoji: '🏡' }, { en: 'room', jp: '<ruby>部屋<rt>へや</rt></ruby>', emoji: '🚪' }, { en: 'kitchen', jp: '<ruby>台所<rt>だいどころ</rt></ruby>', emoji: '🍳' }, { en: 'bath', jp: '<ruby>お風呂<rt>ふろ</rt></ruby>', emoji: '🛁' }, { en: 'park', jp: '<ruby>公園<rt>こうえん</rt></ruby>', emoji: '🏞️' }, { en: 'station', jp: '<ruby>駅<rt>えき</rt></ruby>', emoji: '🚉' }, { en: 'store', jp: '<ruby>店<rt>みせ</rt></ruby>', emoji: '🏪' } ] },
             life2: { id: 'life2', label: 'せいかつ② (Life 2)', color: 'from-red-400 to-orange-500', words: [ { en: 'bed', jp: 'ベッド', emoji: '🛏️' }, { en: 'computer', jp: 'コンピュータ', emoji: '💻' }, { en: 'TV', jp: 'テレビ', emoji: '📺' }, { en: 'phone', jp: '<ruby>電話<rt>でんわ</rt></ruby>', emoji: '☎️' }, { en: 'money', jp: '<ruby>お金<rt>かね</rt></ruby>', emoji: '💴' }, { en: 'present', jp: 'プレゼント', emoji: '🎁' } ] },
             countries: { id: 'countries', label: 'くに (Countries)', color: 'from-orange-400 to-amber-500', words: [ { en: 'Japan', jp: '<ruby>日本<rt>にほん</rt></ruby>', emoji: '🇯🇵' }, { en: 'America', jp: 'アメリカ', emoji: '🇺🇸' }, { en: 'Canada', jp: 'カナダ', emoji: '🇨🇦' }, { en: 'Australia', jp: 'オーストラリア', emoji: '🇦🇺' }, { en: 'China', jp: '<ruby>中国<rt>ちゅうごく</rt></ruby>', emoji: '🇨🇳' }, { en: 'Korea', jp: '<ruby>韓国<rt>かんこく</rt></ruby>', emoji: '🇰🇷' }, { en: 'Brazil', jp: 'ブラジル', emoji: '🇧🇷' } ] },
-
-            // --- Group 5: 🔥 チャレンジ (Challenge) ---
             num2: { id: 'num2', label: 'すうじ② (11-20)', color: 'from-rose-500 to-pink-600', words: [ { en: 'eleven', jp: '11', emoji: '🕚' }, { en: 'twelve', jp: '12', emoji: '🕛' }, { en: 'thirteen', jp: '13', emoji: '1️⃣3️⃣' }, { en: 'fourteen', jp: '14', emoji: '1️⃣4️⃣' }, { en: 'fifteen', jp: '15', emoji: '1️⃣5️⃣' }, { en: 'sixteen', jp: '16', emoji: '1️⃣6️⃣' }, { en: 'seventeen', jp: '17', emoji: '1️⃣7️⃣' }, { en: 'eighteen', jp: '18', emoji: '1️⃣8️⃣' }, { en: 'nineteen', jp: '19', emoji: '1️⃣9️⃣' }, { en: 'twenty', jp: '20', emoji: '2️⃣0️⃣' } ] },
             shapes: { id: 'shapes', label: 'かたち (Shapes)', color: 'from-pink-500 to-fuchsia-600', words: [ { en: 'circle', jp: '<ruby>円<rt>えん</rt></ruby>', emoji: '⭕' }, { en: 'triangle', jp: '<ruby>三角形<rt>さんかくけい</rt></ruby>', emoji: '🔺' }, { en: 'square', jp: '<ruby>正方形<rt>せいほうけい</rt></ruby>・<ruby>四角<rt>しかく</rt></ruby>', emoji: '🟥' }, { en: 'star', jp: '<ruby>星<rt>ほし</rt></ruby>', emoji: '⭐' }, { en: 'heart', jp: 'ハート', emoji: '❤️' } ] },
             order: { id: 'order', label: 'じゅんばん (Order)', color: 'from-fuchsia-500 to-purple-600', words: [ { en: 'first', jp: '<ruby>1番目<rt>ばんめ</rt></ruby>', emoji: '🥇' }, { en: 'second', jp: '<ruby>2番目<rt>ばんめ</rt></ruby>', emoji: '🥈' }, { en: 'third', jp: '<ruby>3番目<rt>ばんめ</rt></ruby>', emoji: '🥉' }, { en: 'fourth', jp: '<ruby>4番目<rt>ばんめ</rt></ruby>', emoji: '4️⃣' }, { en: 'fifth', jp: '<ruby>5番目<rt>ばんめ</rt></ruby>', emoji: '5️⃣' }, { en: 'sixth', jp: '<ruby>6番目<rt>ばんめ</rt></ruby>', emoji: '6️⃣' }, { en: 'seventh', jp: '<ruby>7番目<rt>ばんめ</rt></ruby>', emoji: '7️⃣' }, { en: 'eighth', jp: '<ruby>8番目<rt>ばんめ</rt></ruby>', emoji: '8️⃣' }, { en: 'ninth', jp: '<ruby>9番目<rt>ばんめ</rt></ruby>', emoji: '9️⃣' }, { en: 'tenth', jp: '<ruby>10番目<rt>ばんめ</rt></ruby>', emoji: '🔟' } ] },
@@ -107,46 +133,15 @@
         };
 
         const CATEGORY_GROUPS = [
-            {
-                title: "👑 はじめよう (Basics)",
-                color: "text-amber-600",
-                bg: "bg-orange-50 border-orange-200",
-                ids: ['num1', 'colors', 'animals', 'food', 'family', 'adj2']
-            },
-            {
-                title: "📅 カレンダーとじかん (Time)",
-                color: "text-blue-600",
-                bg: "bg-blue-50 border-blue-200",
-                ids: ['days', 'months', 'seasons', 'time1', 'time2']
-            },
-            {
-                title: "🏫 がっこうとせいかつ (School & Life)",
-                color: "text-teal-600",
-                bg: "bg-teal-50 border-teal-200",
-                ids: ['school1', 'school2', 'sports', 'body', 'clothes', 'drinks']
-            },
-            {
-                title: "🌍 いろいろなことば (World & Actions)",
-                color: "text-purple-600",
-                bg: "bg-purple-50 border-purple-200",
-                ids: ['verbs1', 'verbs2', 'nature', 'life1', 'life2', 'countries']
-            },
-            {
-                title: "🔥 チャレンジ (Challenge)",
-                color: "text-rose-600",
-                bg: "bg-rose-50 border-rose-200",
-                ids: ['num2', 'shapes', 'order', 'adj1', 'questions']
-            }
+            { title: "👑 はじめよう (Basics)", color: "text-amber-600", bg: "bg-orange-50 border-orange-200", ids: ['num1', 'colors', 'animals', 'food', 'family', 'adj2'] },
+            { title: "📅 カレンダーとじかん (Time)", color: "text-blue-600", bg: "bg-blue-50 border-blue-200", ids: ['days', 'months', 'seasons', 'time1', 'time2'] },
+            { title: "🏫 がっこうとせいかつ (School & Life)", color: "text-teal-600", bg: "bg-teal-50 border-teal-200", ids: ['school1', 'school2', 'sports', 'body', 'clothes', 'drinks'] },
+            { title: "🌍 いろいろなことば (World & Actions)", color: "text-purple-600", bg: "bg-purple-50 border-purple-200", ids: ['verbs1', 'verbs2', 'nature', 'life1', 'life2', 'countries'] },
+            { title: "🔥 チャレンジ (Challenge)", color: "text-rose-600", bg: "bg-rose-50 border-rose-200", ids: ['num2', 'shapes', 'order', 'adj1', 'questions'] }
         ];
 
         const ICON_OPTIONS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁', '🚗', '🚀', '✈️', '🚂', '🚓', '🚑', '⚽', '⚾', '🏀', '🎾', '🍎', '🍓', '🍒', '🍇', '🍉', '☀️', '🌙', '🌟', '❄️', '🌈', '👑', '💎', '🎀', '🎵'];
-        const STAMP_OPTIONS = [
-            '💖', '🎀', '🌸', '🍭', '🦄', '🐰', '🐣', '🦋', '🌷', '🍓',
-            '🔥', '⚡', '🚀', '🦖', '🦁', '🦅', '🐉', '🎮', '⚽', '🏎️',
-            '👑', '💎', '🏆', '💯', '🌟', '🌈', '🎊', '🥇', '🦸', '🧞',
-            '🍔', '🍟', '🍕', '🍜', '🍣', '🍙', '🍰', '🍩', '🍦', '🍪', '🍫',
-            '🐶', '🐱', '🐹', '🦊', '🐼', '🐨', '🐧', '🐢', '🐬', '🐳', '🐘'
-        ];
+        const STAMP_OPTIONS = ['💖', '🎀', '🌸', '🍭', '🦄', '🐰', '🐣', '🦋', '🌷', '🍓', '🔥', '⚡', '🚀', '🦖', '🦁', '🦅', '🐉', '🎮', '⚽', '🏎️', '👑', '💎', '🏆', '💯', '🌟', '🌈', '🎊', '🥇', '🦸', '🧞', '🍔', '🍟', '🍕', '🍜', '🍣', '🍙', '🍰', '🍩', '🍦', '🍪', '🍫', '🐶', '🐱', '🐹', '🦊', '🐼', '🐨', '🐧', '🐢', '🐬', '🐳', '🐘'];
         const COLOR_OPTIONS = [
             { label: 'Blue', class: 'bg-blue-100 text-blue-700' },
             { label: 'Pink', class: 'bg-pink-100 text-pink-700' },
@@ -156,12 +151,130 @@
             { label: 'Teal', class: 'bg-teal-100 text-teal-700' },
         ];
 
-        // Version 7: Challenge Mode Added
+        // ★ 音節データ
+        const SYLLABLES = {
+            'one':['one'], 'two':['two'], 'three':['three'], 'four':['four'],
+            'five':['five'], 'six':['six'], 'seven':['sev','en'],
+            'eight':['eight'], 'nine':['nine'], 'ten':['ten'],
+            'red':['red'], 'blue':['blue'], 'yellow':['yel','low'],
+            'green':['green'], 'orange':['or','ange'], 'pink':['pink'],
+            'purple':['pur','ple'], 'black':['black'], 'white':['white'],
+            'brown':['brown'], 'gold':['gold'], 'silver':['sil','ver'],
+            'dog':['dog'], 'cat':['cat'], 'rabbit':['rab','bit'],
+            'bird':['bird'], 'fish':['fish'], 'bear':['bear'],
+            'lion':['li','on'], 'tiger':['ti','ger'],
+            'elephant':['el','e','phant'], 'monkey':['mon','key'],
+            'panda':['pan','da'], 'horse':['horse'], 'cow':['cow'], 'pig':['pig'],
+            'apple':['ap','ple'], 'banana':['ba','na','na'],
+            'grape':['grape'], 'peach':['peach'], 'rice':['rice'],
+            'bread':['bread'], 'egg':['egg'], 'curry':['cur','ry'],
+            'hamburger':['ham','bur','ger'], 'pizza':['piz','za'],
+            'cake':['cake'], 'ice cream':['ice ','cream'],
+            'family':['fam','i','ly'], 'father':['fa','ther'],
+            'mother':['mo','ther'], 'brother':['bro','ther'],
+            'sister':['sis','ter'], 'grandfather':['grand','fa','ther'],
+            'grandmother':['grand','mo','ther'],
+            'happy':['hap','py'], 'sad':['sad'], 'nice':['nice'],
+            'good':['good'], 'fun':['fun'], 'cute':['cute'],
+            'beautiful':['beau','ti','ful'], 'kind':['kind'],
+            'easy':['ea','sy'], 'hard':['hard'],
+            'sunday':['sun','day'], 'monday':['mon','day'],
+            'tuesday':['tues','day'], 'wednesday':['wednes','day'],
+            'thursday':['thurs','day'], 'friday':['fri','day'],
+            'saturday':['sat','ur','day'],
+            'january':['jan','u','ar','y'], 'february':['feb','ru','ar','y'],
+            'march':['march'], 'april':['a','pril'], 'may':['may'],
+            'june':['june'], 'july':['ju','ly'], 'august':['au','gust'],
+            'september':['sep','tem','ber'], 'october':['oc','to','ber'],
+            'november':['no','vem','ber'], 'december':['de','cem','ber'],
+            'spring':['spring'], 'summer':['sum','mer'],
+            'autumn':['au','tumn'], 'winter':['win','ter'],
+            'time':['time'], 'year':['year'], 'month':['month'],
+            'minute':['min','ute'], 'morning':['mor','ning'],
+            'afternoon':['af','ter','noon'], 'evening':['eve','ning'],
+            'night':['night'],
+            'today':['to','day'], 'tomorrow':['to','mor','row'],
+            'yesterday':['yes','ter','day'], 'now':['now'],
+            'always':['al','ways'], 'usually':['u','su','al','ly'],
+            'sometimes':['some','times'], 'never':['nev','er'],
+            'school':['school'], 'teacher':['teach','er'],
+            'student':['stu','dent'], 'friend':['friend'],
+            'class':['class'], 'classroom':['class','room'],
+            'gym':['gym'], 'library':['li','brar','y'],
+            'notebook':['note','book'], 'pencil':['pen','cil'],
+            'eraser':['e','ra','ser'], 'pen':['pen'], 'desk':['desk'],
+            'chair':['chair'], 'textbook':['text','book'],
+            'homework':['home','work'],
+            'baseball':['base','ball'], 'soccer':['soc','cer'],
+            'basketball':['bas','ket','ball'], 'tennis':['ten','nis'],
+            'volleyball':['vol','ley','ball'], 'swimming':['swim','ming'],
+            'badminton':['bad','min','ton'], 'dance':['dance'],
+            'head':['head'], 'face':['face'], 'eye':['eye'],
+            'ear':['ear'], 'nose':['nose'], 'mouth':['mouth'],
+            'hand':['hand'], 'arm':['arm'], 'leg':['leg'],
+            'foot':['foot'], 'finger':['fin','ger'],
+            'cap':['cap'], 'hat':['hat'], 't-shirt':['t-','shirt'],
+            'shirt':['shirt'], 'shoes':['shoes'], 'socks':['socks'],
+            'bag':['bag'], 'umbrella':['um','brel','la'],
+            'milk':['milk'], 'water':['wa','ter'], 'juice':['juice'],
+            'tea':['tea'], 'coffee':['cof','fee'],
+            'play':['play'], 'go':['go'], 'come':['come'],
+            'swim':['swim'], 'run':['run'], 'make':['make'],
+            'use':['use'], 'wash':['wash'], 'clean':['clean'],
+            'eat':['eat'], 'drink':['drink'], 'cook':['cook'],
+            'study':['stu','dy'], 'watch':['watch'], 'listen':['lis','ten'],
+            'like':['like'], 'have':['have'], 'want':['want'],
+            'sun':['sun'], 'moon':['moon'], 'sky':['sky'],
+            'rain':['rain'], 'snow':['snow'], 'cloud':['cloud'],
+            'wind':['wind'], 'river':['riv','er'], 'mountain':['moun','tain'],
+            'sea':['sea'], 'flower':['flow','er'], 'tree':['tree'],
+            'house':['house'], 'home':['home'], 'room':['room'],
+            'kitchen':['kitch','en'], 'bath':['bath'], 'park':['park'],
+            'station':['sta','tion'], 'store':['store'],
+            'bed':['bed'], 'computer':['com','pu','ter'],
+            'tv':['tv'], 'phone':['phone'], 'money':['mon','ey'],
+            'present':['pres','ent'],
+            'japan':['ja','pan'], 'america':['a','mer','i','ca'],
+            'canada':['can','a','da'], 'australia':['aus','tra','li','a'],
+            'china':['chi','na'], 'korea':['ko','re','a'],
+            'brazil':['bra','zil'],
+            'eleven':['e','lev','en'], 'twelve':['twelve'],
+            'thirteen':['thir','teen'], 'fourteen':['four','teen'],
+            'fifteen':['fif','teen'], 'sixteen':['six','teen'],
+            'seventeen':['sev','en','teen'], 'eighteen':['eigh','teen'],
+            'nineteen':['nine','teen'], 'twenty':['twen','ty'],
+            'circle':['cir','cle'], 'triangle':['tri','an','gle'],
+            'square':['square'], 'star':['star'], 'heart':['heart'],
+            'first':['first'], 'second':['sec','ond'], 'third':['third'],
+            'fourth':['fourth'], 'fifth':['fifth'], 'sixth':['sixth'],
+            'seventh':['sev','enth'], 'eighth':['eighth'],
+            'ninth':['ninth'], 'tenth':['tenth'],
+            'big':['big'], 'small':['small'], 'long':['long'],
+            'short':['short'], 'new':['new'], 'old':['old'],
+            'hot':['hot'], 'cold':['cold'],
+            'what':['what'], 'who':['who'], 'where':['where'],
+            'when':['when'], 'which':['which'], 'how':['how'],
+            'whose':['whose'],
+        };
+
+        function getSyllableMap(word) {
+            const syls = SYLLABLES[word.toLowerCase()];
+            if (!syls) return null;
+            const map = [];
+            let idx = 0;
+            syls.forEach((syl, si) => {
+                for (let i = 0; i < syl.length; i++) {
+                    map[idx++] = si;
+                }
+            });
+            return map;
+        }
+
         const DATA_KEY = 'spelling_game_data_v7';
         const USERS_KEY = 'spelling_game_users_v7';
         const HISTORY_LIMIT = 50;
 
-        // --- 2. 状態管理 (Global State) ---
+        // --- 2. 状態管理 ---
         
         let state = {
             users: [],
@@ -169,29 +282,61 @@
             currentUserId: null,
             screen: 'userSelect', 
             isSoundOn: true,
-            
-            // UI State
             showHelp: false,
-
-            // Edit User State
             editingUser: {}, 
-
-            // Game State
             currentCategory: null,
             questionIndex: 0,
             poolLetters: [],
             answerSlots: [],
             isCorrect: false,
             showHint: false,
-            
-            // Session Stats (90%ルールとチャレンジ用)
             sessionPerfectWordCount: 0, 
             sessionErrorWords: [],      
             currentWordHadError: false, 
             currentWordUsedHint: false, 
+            resultInfo: null,
+            stampBookPage: 1,
+            calendarYear: new Date().getFullYear(),
+            calendarMonth: new Date().getMonth(),
+            wordListCategory: null,
+            practiceWordIndex: 0,
+            practicePhase: 0,
+            practiceIsCorrect: false,
+            practiceAnswerSlots: [],
+            practicePoolLetters: [],
+            tracingStrokes: [],
+            isTracingDrawing: false,
+            // ★ てがき画面のサブモード
+            // 'nazori'=なぞり / 'hint'=ヒントあり / 'nohint'=ヒントなし
+            tracingMode: 'nazori',
+            tracingRevealed: false,      // ヒントなし→かけた！後の正解表示フラグ
+            tracingSnapshotUrl: null,    // ヒントなし→かけた！時のキャンバス画像
+            tracingCanvasW: 560,         // saveTracing で使うキャンバス幅
+            tracingCanvasH: 280,         // saveTracing で使うキャンバス高さ
+            karutaCategory: null,
+            karutaWords: [],
+            karutaCurrentIdx: -1,
+            karutaCleared: [],
+            karutaDone: false,
+            karutaHint: false,
+            testCategory: null,
+            testWords: [],
+            testWordIndex: 0,
+            testRevealed: false,
+            testInput: '',
+            testInputMode: 'canvas',
+            testStrokes: [],
+            testIsDrawing: false,
+            testResults: [],
 
-            // Result State
-            resultInfo: null 
+            // ★ 設定：ヒントあり/なしの回数は0〜5
+            settings: {
+                colorCoding: true,
+                showPhonetics: false,
+                hintCount: 2,      // 🌟ヒントあり回数 (0=なし, 1〜5)
+                noHintCount: 2,    // 💪ヒントなし回数 (0=なし, 1〜5)
+            },
+            showSettings: false,
         };
 
         // --- 3. 音声・効果音エンジン ---
@@ -208,105 +353,48 @@
         function playTone(type) {
             if (!state.isSoundOn) return;
             initAudio();
-
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             const now = audioCtx.currentTime;
-
             switch (type) {
                 case 'tap':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
-                    gain.gain.setValueAtTime(0.15, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                    osc.start(now);
-                    osc.stop(now + 0.08);
-                    break;
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08); break;
                 case 'remove':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(400, now);
-                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                    osc.start(now);
-                    osc.stop(now + 0.1);
-                    break;
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1); break;
                 case 'hint':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(1200, now);
-                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
-                    gain.gain.setValueAtTime(0.05, now);
-                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
-                    osc.start(now);
-                    osc.stop(now + 0.3);
-                    break;
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+                    gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3); break;
                 case 'correct':
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, now); 
-                    osc.frequency.setValueAtTime(659.25, now + 0.1); 
-                    osc.frequency.setValueAtTime(783.99, now + 0.2); 
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.linearRampToValueAtTime(0, now + 0.6);
-                    osc.start(now);
-                    osc.stop(now + 0.6);
-                    break;
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.1); osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6); break;
                 case 'error':
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(150, now);
-                    osc.frequency.linearRampToValueAtTime(100, now + 0.2);
-                    gain.gain.setValueAtTime(0.2, now);
-                    gain.gain.linearRampToValueAtTime(0, now + 0.2);
-                    osc.start(now);
-                    osc.stop(now + 0.2);
-                    break;
-                case 'complete': 
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(523.25, now); 
-                    osc.frequency.setValueAtTime(659.25, now + 0.15); 
-                    osc.frequency.setValueAtTime(783.99, now + 0.30); 
-                    osc.frequency.setValueAtTime(1046.50, now + 0.45); 
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.linearRampToValueAtTime(0, now + 0.8);
-                    osc.start(now);
-                    osc.stop(now + 0.8);
-                    break;
-                case 'perfect': 
-                    osc.type = 'square';
-                    osc.frequency.setValueAtTime(523.25, now); 
-                    osc.frequency.setValueAtTime(523.25, now + 0.12); 
-                    osc.frequency.setValueAtTime(523.25, now + 0.24); 
-                    osc.frequency.setValueAtTime(783.99, now + 0.36); 
-                    osc.frequency.setValueAtTime(659.25, now + 0.60); 
-                    osc.frequency.setValueAtTime(783.99, now + 0.72); 
-                    osc.frequency.setValueAtTime(1046.50, now + 0.84); 
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.linearRampToValueAtTime(0, now + 2.0);
-                    osc.start(now);
-                    osc.stop(now + 2.0);
-                    break;
-                case 'crown': 
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(1046.50, now); 
-                    osc.frequency.setValueAtTime(1318.51, now + 0.1); 
-                    osc.frequency.setValueAtTime(1567.98, now + 0.2); 
-                    osc.frequency.setValueAtTime(2093.00, now + 0.4); 
-                    gain.gain.setValueAtTime(0.1, now);
-                    gain.gain.linearRampToValueAtTime(0, now + 1.0);
-                    osc.start(now);
-                    osc.stop(now + 1.0);
-                    break;
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2); break;
+                case 'complete':
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(659.25, now + 0.15); osc.frequency.setValueAtTime(783.99, now + 0.30); osc.frequency.setValueAtTime(1046.50, now + 0.45);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.8);
+                    osc.start(now); osc.stop(now + 0.8); break;
+                case 'perfect':
+                    osc.type = 'square'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.setValueAtTime(523.25, now + 0.12); osc.frequency.setValueAtTime(523.25, now + 0.24); osc.frequency.setValueAtTime(783.99, now + 0.36); osc.frequency.setValueAtTime(659.25, now + 0.60); osc.frequency.setValueAtTime(783.99, now + 0.72); osc.frequency.setValueAtTime(1046.50, now + 0.84);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 2.0);
+                    osc.start(now); osc.stop(now + 2.0); break;
+                case 'crown':
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(1046.50, now); osc.frequency.setValueAtTime(1318.51, now + 0.1); osc.frequency.setValueAtTime(1567.98, now + 0.2); osc.frequency.setValueAtTime(2093.00, now + 0.4);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 1.0);
+                    osc.start(now); osc.stop(now + 1.0); break;
                 case 'stamp':
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(200, now);
-                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
-                    gain.gain.setValueAtTime(0.5, now);
-                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-                    osc.start(now);
-                    osc.stop(now + 0.15);
-                    break;
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                    gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15); break;
             }
         }
 
@@ -323,69 +411,76 @@
 
         function initData() {
             const savedUsers = localStorage.getItem(USERS_KEY);
-            if (savedUsers) {
-                state.users = JSON.parse(savedUsers);
-            }
+            if (savedUsers) state.users = JSON.parse(savedUsers);
             const savedData = localStorage.getItem(DATA_KEY);
-            if (savedData) {
-                state.allUsersData = JSON.parse(savedData);
-            }
+            if (savedData) state.allUsersData = JSON.parse(savedData);
         }
 
-        function saveUsers() {
-            localStorage.setItem(USERS_KEY, JSON.stringify(state.users));
-        }
+        function saveUsers() { localStorage.setItem(USERS_KEY, JSON.stringify(state.users)); }
+        function saveData() { localStorage.setItem(DATA_KEY, JSON.stringify(state.allUsersData)); }
 
-        function saveData() {
-            localStorage.setItem(DATA_KEY, JSON.stringify(state.allUsersData));
-        }
+        function getBestShotKey(userId, wordEn) { return `ep_bs_${userId}_${wordEn.replace(/\s+/g, '_')}`; }
+        function getBestShot(userId, wordEn) { return localStorage.getItem(getBestShotKey(userId, wordEn)); }
+        function saveBestShot(userId, wordEn, svgData) { localStorage.setItem(getBestShotKey(userId, wordEn), svgData); }
 
         function getSlotSizeClass(wordLength) {
-            if (wordLength >= 8) return { box: "w-8 h-12 sm:w-12 sm:h-16", text: "text-3xl sm:text-5xl leading-relaxed pb-2" };
-            if (wordLength >= 6) return { box: "w-10 h-14 sm:w-14 sm:h-20", text: "text-4xl sm:text-6xl leading-relaxed pb-2" };
-            return { box: "w-14 h-16 sm:w-16 sm:h-24", text: "text-5xl sm:text-7xl leading-relaxed pb-3" };
+            if (wordLength >= 11) return { box: "w-10 h-14 md:w-12 md:h-16", text: "text-3xl md:text-4xl leading-relaxed pb-2" };
+            if (wordLength >= 8)  return { box: "w-12 h-16 md:w-16 md:h-20", text: "text-4xl md:text-5xl leading-relaxed pb-2" };
+            if (wordLength >= 6)  return { box: "w-14 h-18 md:w-18 md:h-24", text: "text-5xl md:text-6xl leading-relaxed pb-2" };
+            return { box: "w-16 h-20 md:w-20 md:h-24", text: "text-6xl md:text-7xl leading-relaxed pb-3" };
         }
 
         function updateScreen(screenName) {
             state.screen = screenName;
-            state.showHelp = false; // 画面遷移時にヘルプは閉じる
+            state.showHelp = false;
             render();
         }
 
-        // --- 5. レンダリング関数 (View) ---
+        function stripHtml(str) { return str.replace(/<[^>]+>/g, ''); }
+
+        // ★ 設定値を変更する関数（setPracticeCount/toggleSetting）
+        // 「なぜ必要か」：renderSettingsPage内のボタンがこれを呼ぶが、
+        //               元のコードでは定義されておらず、設定が変わらないバグがあった
+        function setPracticeCount(key, val) {
+            playTone('tap');
+            state.settings[key] = val;
+            render();
+        }
+
+        function toggleSetting(key) {
+            playTone('tap');
+            state.settings[key] = !state.settings[key];
+            render();
+        }
+
+        // --- 5. レンダリング関数 ---
 
         const app = document.getElementById('app');
 
         function render() {
             app.innerHTML = '';
-            
-            // Common User Data
             const currentUser = state.users.find(u => u.id === state.currentUserId);
             const userData = (state.currentUserId && state.allUsersData[state.currentUserId]) 
                 ? state.allUsersData[state.currentUserId] 
                 : { progress: {}, history: [], challengeWords: [] };
-            
             if (!userData.challengeWords) userData.challengeWords = [];
 
-            if (state.screen === 'userSelect') {
-                renderUserSelect();
-            } else if (state.screen === 'userEdit') {
-                renderUserEdit();
-            } else if (state.screen === 'home') {
-                renderHome(currentUser, userData.progress, userData.challengeWords);
-            } else if (state.screen === 'stampBook') {
-                renderStampBook(userData.progress);
-            } else if (state.screen === 'history') {
-                renderHistory(userData.history);
-            } else if (state.screen === 'game') {
-                renderGame(currentUser);
-            } else if (state.screen === 'result') {
-                renderResult(currentUser, userData.progress);
-            } else if (state.screen === 'stampSelect') {
-                renderStampSelect();
-            }
+            if (state.screen === 'userSelect') renderUserSelect();
+            else if (state.screen === 'userEdit') renderUserEdit();
+            else if (state.screen === 'home') renderHome(currentUser, userData.progress, userData.challengeWords);
+            else if (state.screen === 'stampBook') renderStampBook(userData.progress, userData.history || []);
+            else if (state.screen === 'history') renderHistory(userData.history);
+            else if (state.screen === 'game') renderGame(currentUser);
+            else if (state.screen === 'result') renderResult(currentUser, userData.progress);
+            else if (state.screen === 'stampSelect') renderStampSelect();
+            else if (state.screen === 'wordList') renderWordList(currentUser);
+            else if (state.screen === 'wordPractice') renderWordPractice(currentUser);
+            else if (state.screen === 'tracing') renderTracing(currentUser);
+            else if (state.screen === 'karuta') renderKaruta(currentUser);
+            else if (state.screen === 'settings') renderSettingsPage();
+            else if (state.screen === 'test') renderTest();
+            else if (state.screen === 'testResult') renderTestResult();
 
-            // Lucideアイコンの再描画
             lucide.createIcons();
         }
 
@@ -393,51 +488,41 @@
             let html = `
             <div class="min-h-screen bg-slate-50 p-4 flex items-center justify-center w-full">
                 <div class="max-w-md w-full">
-                    <header class="mb-10 text-center relative">
+                    <header class="mb-8 text-center relative">
                         <div class="absolute right-0 top-0">
                             <button onclick="toggleSound()" class="p-2 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition-colors">
                                 <i data-lucide="${state.isSoundOn ? 'volume-2' : 'volume-x'}" class="w-5 h-5"></i>
                             </button>
                         </div>
                         <h1 class="text-3xl font-bold text-indigo-600 mb-2 flex items-center justify-center gap-2 pt-2">
-                            <i data-lucide="sparkles" class="w-8 h-8 text-yellow-400 fill-yellow-400"></i>
+                            <i data-lucide="sparkles" class="w-7 h-7 text-yellow-400 fill-yellow-400"></i>
                             English Puzzle
                         </h1>
                         <p class="text-slate-500 font-bold">だれが まなぶ？</p>
                     </header>
-                    <div class="grid gap-4">`;
-
+                    <div class="grid gap-3">`;
             state.users.forEach(user => {
                 html += `
                 <div class="relative group">
-                    <button onclick="selectUser('${user.id}')" class="w-full p-4 pr-12 rounded-3xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 text-left ${user.color} flex items-center gap-4 border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
-                        <div class="text-4xl bg-white/50 w-16 h-16 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
-                            ${user.icon}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-xl font-bold truncate">${user.name}</div>
-                            <div class="text-xs opacity-80 font-bold mt-1">Let's Play!</div>
-                        </div>
-                        <i data-lucide="arrow-right" class="w-6 h-6 opacity-60"></i>
+                    <button onclick="selectUser('${user.id}')" class="w-full p-4 pr-12 rounded-2xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-1 text-left ${user.color} flex items-center gap-4 border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+                        <div class="text-3xl bg-white/50 w-14 h-14 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">${user.icon}</div>
+                        <div class="flex-1 min-w-0"><div class="text-xl font-bold truncate">${user.name}</div><div class="text-xs opacity-80 font-bold mt-0.5">Let's Play!</div></div>
+                        <i data-lucide="arrow-right" class="w-5 h-5 opacity-60"></i>
                     </button>
                     <button onclick="deleteUser('${user.id}')" class="absolute -top-2 -right-2 p-2 bg-white text-slate-400 hover:text-red-500 rounded-full shadow-sm border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </div>`;
             });
-
             if (state.users.length < 3) {
                 html += `
-                <button onclick="startEditUser()" class="w-full p-6 rounded-3xl border-4 border-dashed border-slate-300 text-slate-400 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 hover:border-slate-400 transition-all group">
-                    <div class="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center group-hover:bg-slate-300 transition-colors">
-                        <i data-lucide="plus" class="w-6 h-6"></i>
-                    </div>
+                <button onclick="startEditUser()" class="w-full p-5 rounded-2xl border-4 border-dashed border-slate-300 text-slate-400 flex flex-col items-center justify-center gap-2 hover:bg-slate-100 hover:border-slate-400 transition-all group">
+                    <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center group-hover:bg-slate-300 transition-colors"><i data-lucide="plus" class="w-5 h-5"></i></div>
                     <span class="font-bold">あたらしく つくる</span>
                 </button>`;
             } else {
                 html += `<p class="text-center text-xs text-slate-400 mt-2 font-bold">※ 3にん まで つくれるよ</p>`;
             }
-
             html += `</div></div></div>`;
             app.innerHTML = html;
         }
@@ -456,19 +541,13 @@
                         <div>
                             <label class="block text-sm font-bold text-slate-400 mb-2">アイコン</label>
                             <div class="flex flex-wrap gap-2 justify-center max-h-40 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-100">
-                                ${ICON_OPTIONS.map(icon => `
-                                    <button onclick="updateEditingIcon('${icon}')" class="w-12 h-12 text-3xl flex items-center justify-center rounded-lg transition-all ${u.icon === icon ? 'bg-white shadow-md scale-110 border-2 border-indigo-400' : 'hover:bg-white hover:shadow-sm'}">
-                                        ${icon}
-                                    </button>
-                                `).join('')}
+                                ${ICON_OPTIONS.map(icon => `<button onclick="updateEditingIcon('${icon}')" class="w-12 h-12 text-3xl flex items-center justify-center rounded-lg transition-all ${u.icon === icon ? 'bg-white shadow-md scale-110 border-2 border-indigo-400' : 'hover:bg-white hover:shadow-sm'}">${icon}</button>`).join('')}
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-400 mb-2">いろ</label>
                             <div class="flex flex-wrap gap-3 justify-center">
-                                ${COLOR_OPTIONS.map(c => `
-                                    <button onclick="updateEditingColor('${c.class}')" class="w-10 h-10 rounded-full border-2 ${c.class.split(' ')[0]} ${u.color === c.class ? 'ring-4 ring-offset-2 ring-indigo-200 scale-110 border-indigo-500' : 'border-transparent opacity-70'}"></button>
-                                `).join('')}
+                                ${COLOR_OPTIONS.map(c => `<button onclick="updateEditingColor('${c.class}')" class="w-10 h-10 rounded-full border-2 ${c.class.split(' ')[0]} ${u.color === c.class ? 'ring-4 ring-offset-2 ring-indigo-200 scale-110 border-indigo-500' : 'border-transparent opacity-70'}"></button>`).join('')}
                             </div>
                         </div>
                         <div class="flex gap-3 pt-4">
@@ -482,188 +561,118 @@
         }
 
         function renderHome(user, progress, challengeWords) {
-            // ★変更：ユーザーデータを取得し、まだ読んでいない場合のみアニメーションを有効にする
             const userData = state.allUsersData[state.currentUserId];
             const isFirstTime = (!userData.history || userData.history.length === 0) && !userData.hasReadHelp;
-
             let html = `
-            <div class="min-h-screen bg-slate-50 p-4 w-full relative">
-                <div class="max-w-md mx-auto pt-2">
+            <div class="min-h-screen bg-slate-50 p-6 w-full relative">
+                <div class="max-w-5xl mx-auto pt-2">
                     <div class="flex justify-between items-center mb-6">
-                        <button onclick="updateScreen('userSelect'); playTone('tap')" class="flex items-center gap-2 px-3 py-2 bg-white rounded-full text-slate-500 font-bold shadow-sm hover:bg-slate-100 border border-slate-100">
-                            <i data-lucide="arrow-left" class="w-5 h-5"></i> <span class="text-xs">もどる</span>
+                        <button onclick="updateScreen('userSelect'); playTone('tap')" class="flex items-center gap-2 px-4 py-3 bg-white rounded-full text-slate-500 font-bold shadow-sm hover:bg-slate-100 border border-slate-100">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i> <span class="text-sm">もどる</span>
                         </button>
-                        
-                        <button onclick="openHelp()" class="flex items-center gap-1 px-3 py-2 rounded-full font-bold shadow-sm transition-all ${isFirstTime ? 'bg-yellow-400 text-white border border-yellow-500 animate-bounce ring-4 ring-yellow-400/50' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100'}">
-                            <i data-lucide="help-circle" class="w-4 h-4"></i> <span class="text-xs">つかいかた</span>
+                        <button onclick="openHelp()" class="flex items-center gap-2 px-4 py-3 rounded-full font-bold shadow-sm transition-all ${isFirstTime ? 'bg-yellow-400 text-white border border-yellow-500 animate-bounce ring-4 ring-yellow-400/50' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100'}">
+                            <i data-lucide="help-circle" class="w-5 h-5"></i> <span class="text-sm">つかいかた</span>
                         </button>
-
-                        <div class="flex items-center gap-2 px-3 py-2 rounded-full font-bold text-xs ${user.color}">
-                            <span>${user.icon}</span><span>${user.name}</span>
+                        <div class="flex items-center gap-3 px-4 py-3 rounded-full font-bold text-base ${user.color}">
+                            <span class="text-2xl">${user.icon}</span><span>${user.name}</span>
                         </div>
                     </div>
-
                     <header class="mb-6 text-center">
-                        <button onclick="updateScreen('stampBook'); playTone('tap')" class="w-full mb-6 p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-100 border-4 border-amber-200 shadow-lg flex items-center gap-4 hover:border-amber-300 hover:scale-[1.02] transition-all group relative overflow-hidden">
+                        <button onclick="updateScreen('stampBook'); playTone('tap')" class="w-full mb-4 p-5 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-100 border-4 border-amber-200 shadow-lg flex items-center gap-4 hover:border-amber-300 hover:scale-[1.01] transition-all group relative overflow-hidden">
                             <div class="absolute -right-6 -top-6 w-32 h-32 bg-yellow-300 rounded-full opacity-20 blur-2xl"></div>
                             <div class="text-left flex-1 relative z-10 pl-2">
                                 <div class="text-2xl font-black text-amber-800 drop-shadow-sm">👑スタンプちょう👑</div>
-                                <div class="text-sm text-amber-700 font-bold mt-1 leading-tight flex items-center gap-1">
+                                <div class="text-base text-amber-700 font-bold mt-1 leading-tight flex items-center gap-1">
                                     <i data-lucide="crown" class="w-4 h-4 fill-amber-600"></i>
-                                    正解率90%以上を 3回でゲット！
+                                    フラッシュカードで 正解率90%以上を 3回でゲット！
                                 </div>
                             </div>
-                            <div class="bg-white p-2 rounded-full shadow-sm">
-                                <i data-lucide="arrow-right" class="w-6 h-6 text-amber-500"></i>
-                            </div>
+                            <div class="bg-white p-2 rounded-full shadow-sm"><i data-lucide="arrow-right" class="w-6 h-6 text-amber-500"></i></div>
                         </button>
-
-                        ${challengeWords.length > 0 ? `
-                        <button onclick="startChallengeMode()" class="w-full mb-8 p-6 rounded-3xl bg-gradient-to-br from-red-500 to-rose-600 shadow-xl flex items-center gap-4 hover:scale-[1.02] transition-all group relative overflow-hidden animate-pulse">
-                            <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')] opacity-30"></div>
-                            <div class="text-left flex-1 relative z-10 pl-2 text-white">
-                                <div class="text-2xl font-black drop-shadow-md flex items-center gap-2">
-                                    🔥 チャレンジBOX
-                                </div>
-                                <div class="text-sm font-bold mt-1 opacity-90">
-                                    あと ${challengeWords.length}もん！ やっつけよう！
+                        ${(challengeWords.length > 0 || (state.allUsersData[state.currentUserId]?.challengeTestWords?.length > 0)) ? (() => {
+                            const testChallenge = state.allUsersData[state.currentUserId]?.challengeTestWords || [];
+                            return `
+                        <div class="w-full mb-4 p-4 rounded-3xl bg-gradient-to-br from-red-500 to-rose-600 shadow-xl relative overflow-hidden">
+                            <div class="relative z-10">
+                                <div class="text-white font-black text-xl flex items-center gap-2 mb-3">🔥 チャレンジBOX</div>
+                                <div class="flex gap-2">
+                                    ${challengeWords.length > 0 ? `<button onclick="startChallengeMode()" class="flex-1 py-2.5 rounded-xl bg-white/20 text-white font-bold text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"><i data-lucide="zap" class="w-4 h-4"></i> フラッシュ ${challengeWords.length}もん</button>` : ''}
+                                    ${testChallenge.length > 0 ? `<button onclick="startChallengeTest()" class="flex-1 py-2.5 rounded-xl bg-white/20 text-white font-bold text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1">📝 テスト ${testChallenge.length}もん</button>` : ''}
                                 </div>
                             </div>
-                            <div class="bg-white/20 p-2 rounded-full backdrop-blur-sm">
-                                <i data-lucide="sword" class="w-8 h-8 text-white"></i>
-                            </div>
-                        </button>` : ''}
-
+                        </div>`;
+                        })() : ''}
                         <h2 class="text-2xl font-bold text-slate-700 flex items-center justify-center gap-2">
                             <i data-lucide="book-open" class="w-6 h-6 text-indigo-400"></i> どれで まなぶ？
                         </h2>
                     </header>
-
                     <div class="space-y-8 mb-12">`;
 
             CATEGORY_GROUPS.forEach(group => {
                 html += `
                 <div>
                     <div class="flex items-center gap-2 mb-3 px-2">
-                        <span class="text-lg font-bold ${group.color}">${group.title}</span>
+                        <span class="text-xl font-bold ${group.color}">${group.title}</span>
                         <div class="h-1 flex-1 bg-slate-100 rounded-full"></div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">`;
-                
+                    <div class="grid grid-cols-3 gap-4">`;
                 group.ids.forEach(catId => {
                     const cat = DATA[catId];
-                    // ★変更：extraBadgeCount を受け取る
                     const p = progress[cat.id] || { perfectCount: 0, stamp: null, extraBadgeCount: 0 };
                     const remainingForCrown = Math.max(0, 3 - p.perfectCount);
-                    
-                    // ★追加：固定の「👑」をカウント分だけつなげて1列にする
                     let badgesHtml = '';
                     if (p.stamp) {
                         const totalCrowns = 1 + (p.extraBadgeCount || 0);
                         let crowns = '';
-                        for (let i = 0; i < totalCrowns; i++) {
-                            crowns += '👑';
-                        }
+                        for (let i = 0; i < totalCrowns; i++) crowns += '👑';
                         badgesHtml = `<span class="text-base animate-shine drop-shadow-sm ml-1 tracking-tighter whitespace-nowrap">${crowns}</span>`;
                     }
-                    
                     html += `
-                    <button onclick="startCategory('${cat.id}')" class="relative w-full p-4 rounded-2xl shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 text-left bg-gradient-to-r ${cat.color} text-white group overflow-hidden h-full border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
+                    <button onclick="startCategory('${cat.id}')" class="relative w-full p-5 rounded-2xl shadow-sm hover:shadow-md transition-all transform hover:-translate-y-1 text-left bg-gradient-to-r ${cat.color} text-white group overflow-hidden h-full border-b-4 border-black/10 active:border-b-0 active:translate-y-1">
                         <div class="flex justify-between items-start relative z-10 h-full">
                             <div class="flex-1 min-w-0">
-                                <span class="text-lg font-bold flex flex-wrap items-center gap-1 leading-tight mb-1">
-                                    ${cat.label.split('(')[0]}
-                                    ${badgesHtml} </span>
-                                <div class="text-xs opacity-90 font-medium flex flex-wrap items-center gap-1">
-                                    <span class="bg-black/20 px-1.5 py-0.5 rounded-md whitespace-nowrap">${cat.words.length}もん</span>
-                                    ${!p.stamp && p.perfectCount > 0 ? `<span class="bg-yellow-400/90 text-yellow-900 px-1.5 py-0.5 rounded-full whitespace-nowrap font-bold text-[10px]">あと${remainingForCrown}かい</span>` : ''}
+                                <span class="text-xl font-bold flex flex-wrap items-center gap-1 leading-tight mb-2">${cat.label.split('(')[0]}${badgesHtml}</span>
+                                <div class="text-sm opacity-90 font-medium flex flex-wrap items-center gap-1">
+                                    <span class="bg-black/20 px-2 py-0.5 rounded-md whitespace-nowrap">${cat.words.length}もん</span>
+                                    ${!p.stamp && p.perfectCount > 0 ? `<span class="bg-yellow-400/90 text-yellow-900 px-2 py-0.5 rounded-full whitespace-nowrap font-bold text-xs">あと${remainingForCrown}かい</span>` : ''}
                                 </div>
                             </div>
                         </div>
-                        <div class="absolute -right-2 -bottom-2 opacity-20 text-6xl pointer-events-none filter grayscale brightness-200">${cat.words[0].emoji}</div>
+                        <div class="absolute -right-2 -bottom-2 opacity-20 text-7xl pointer-events-none filter grayscale brightness-200">${cat.words[0].emoji}</div>
                     </button>`;
                 });
-                
                 html += `</div></div>`;
             });
 
             html += `
                     </div>
                     <div class="text-center pb-8 border-t border-slate-200 pt-8">
-                        <button onclick="updateScreen('history'); playTone('tap')" class="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-500 rounded-xl font-bold shadow-sm border-2 border-slate-200 hover:bg-slate-50 transition-colors text-sm">
-                            <i data-lucide="history" class="w-4 h-4"></i> きろくを みる
+                        <button onclick="goToCalendar()" class="inline-flex items-center gap-2 px-8 py-4 bg-white text-slate-500 rounded-xl font-bold shadow-sm border-2 border-slate-200 hover:bg-slate-50 transition-colors text-base">
+                            <i data-lucide="calendar" class="w-5 h-5"></i> きろくを みる
                         </button>
                     </div>
-                </div>
-            `;
+                </div>`;
 
-            // Help Modal
             if (state.showHelp) {
                 html += `
                 <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onclick="toggleHelp()">
                     <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border-4 border-indigo-100 animate-modal-in relative" onclick="event.stopPropagation()">
-                        <button onclick="toggleHelp()" class="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                        
+                        <button onclick="toggleHelp()" class="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <div class="text-center mb-6">
-                            <div class="inline-block p-3 rounded-full bg-indigo-100 text-indigo-500 mb-2">
-                                <i data-lucide="book-open" class="w-8 h-8"></i>
-                            </div>
+                            <div class="inline-block p-3 rounded-full bg-indigo-100 text-indigo-500 mb-2"><i data-lucide="book-open" class="w-8 h-8"></i></div>
                             <h2 class="text-2xl font-bold text-slate-700">つかいかた</h2>
                         </div>
-
-                        <div class="space-y-6 overflow-y-auto max-h-[60vh] pr-2">
-                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                <h3 class="font-bold text-indigo-600 mb-2 flex items-center gap-2">
-                                    <i data-lucide="keyboard" class="w-5 h-5"></i> 
-                                    <ruby><rb>入力</rb><rt>にゅうりょく</rt></ruby>しよう
-                                </h3>
-                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
-                                    <ruby><rb>画面</rb><rt>がめん</rt></ruby>のボタンをおすか、キーボードで<ruby><rb>文字</rb><rt>もじ</rt></ruby>をうってね。<br>
-                                    <span class="text-red-500">★</span><ruby><rb>大文字</rb><rt>おおもじ</rt></ruby>(A,B,C)は、<span class="bg-white px-1 border rounded text-xs">Shift</span>キーをおしながらうってね！
-                                </p>
-                            </div>
-
-                            <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-                                <h3 class="font-bold text-yellow-600 mb-2 flex items-center gap-2">
-                                    <i data-lucide="lightbulb" class="w-5 h-5"></i> 
-                                    ヒントをつかう
-                                </h3>
-                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
-                                    <ruby><rb>分</rb><rt>わ</rt></ruby>からないときは、<i data-lucide="lightbulb" class="w-4 h-4 inline text-yellow-500"></i>ボタンをおしてね。<br>
-                                    うすく<ruby><rb>答</rb><rt>こた</rt></ruby>えが<ruby><rb>見</rb><rt>み</rt></ruby>えるよ。
-                                </p>
-                            </div>
-
+                        <div class="space-y-4 overflow-y-auto max-h-[60vh] pr-2">
                             <div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                                <h3 class="font-bold text-amber-600 mb-2 flex items-center gap-2">
-                                    <i data-lucide="crown" class="w-5 h-5"></i> 
-                                    スタンプゲット
-                                </h3>
-                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
-                                    ヒントなしで<ruby><rb>間違</rb><rt>まちが</rt></ruby>えずに<ruby><rb>答</rb><rt>こた</rt></ruby>えると、100<ruby><rb>点</rb><rt>てん</rt></ruby>！<br>
-                                    90<ruby><rb>点</rb><rt>てん</rt></ruby><ruby><rb>以上</rb><rt>いじょう</rt></ruby>を<span class="text-amber-600 text-lg">3<ruby><rb>回</rb><rt>かい</rt></ruby></span>とると、<ruby><rb>特別</rb><rt>とくべつ</rt></ruby>なスタンプがもらえるよ！
-                                </p>
+                                <h3 class="font-bold text-amber-600 mb-2 flex items-center gap-2"><i data-lucide="crown" class="w-5 h-5"></i> スタンプゲット</h3>
+                                <p class="text-sm font-bold text-slate-600 leading-relaxed">フラッシュカードで 90点以上を3回とると スタンプがもらえるよ！</p>
                             </div>
-
                             <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-                                <h3 class="font-bold text-red-600 mb-2 flex items-center gap-2">
-                                    <i data-lucide="flame" class="w-5 h-5"></i> 
-                                    チャレンジBOX
-                                </h3>
-                                <p class="text-sm font-bold text-slate-600 leading-relaxed">
-                                    <ruby><rb>間違</rb><rt>まちが</rt></ruby>えた<ruby><rb>問題</rb><rt>もんだい</rt></ruby>は BOXにたまるよ。<br>
-                                    ぜんぶ やっつけよう！
-                                </p>
+                                <h3 class="font-bold text-red-600 mb-2 flex items-center gap-2"><i data-lucide="flame" class="w-5 h-5"></i> チャレンジBOX</h3>
+                                <p class="text-sm font-bold text-slate-600 leading-relaxed">まちがえた問題はBOXにたまるよ。ぜんぶ やっつけよう！</p>
                             </div>
                         </div>
-
-                        <div class="mt-6">
-                            <button onclick="toggleHelp()" class="w-full py-3 bg-indigo-500 text-white font-bold rounded-xl shadow-md hover:bg-indigo-600 transition-colors">
-                                わかった！
-                            </button>
-                        </div>
+                        <div class="mt-6"><button onclick="toggleHelp()" class="w-full py-3 bg-indigo-500 text-white font-bold rounded-xl shadow-md hover:bg-indigo-600 transition-colors">わかった！</button></div>
                     </div>
                 </div>`;
             }
@@ -672,26 +681,645 @@
             app.innerHTML = html;
         }
 
-        function renderStampBook(progress) {
-            // 集めたスタンプ数をカウント
+        // ★ 単語カード一覧画面
+        function renderWordList(currentUser) {
+            const cat = DATA[state.wordListCategory];
+            if (!cat) { updateScreen('home'); return; }
+            let html = `
+            <div class="min-h-screen bg-slate-100 w-full flex flex-col">
+                <div class="max-w-5xl mx-auto w-full p-6 flex flex-col flex-1">
+                    <div class="flex justify-between items-center mb-5 pt-2">
+                        <button onclick="updateScreen('home'); playTone('tap')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600 transition-colors">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="text-center">
+                            <div class="text-sm font-bold text-slate-400 mb-0.5">カテゴリ</div>
+                            <h2 class="text-2xl font-bold text-slate-700">${cat.label.split('(')[0].trim()}</h2>
+                        </div>
+                        <div class="w-12"></div>
+                    </div>
+                    <div class="flex gap-2 mb-4">
+                        <button onclick="startKaruta('${cat.id}')" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold text-base shadow-md border-b-4 border-black/10 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-1">🃏 カルタ</button>
+                        <button onclick="startCategoryGame('${cat.id}')" class="flex-1 py-3 rounded-xl bg-gradient-to-r ${cat.color} text-white font-bold text-base shadow-md border-b-4 border-black/10 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-1"><i data-lucide="zap" class="w-5 h-5"></i> フラッシュ</button>
+                        <button onclick="startTest('${cat.id}')" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white font-bold text-base shadow-md border-b-4 border-black/10 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-1">📝 テスト</button>
+                    </div>
+                    <div class="grid grid-cols-4 gap-4 flex-1 pb-4">`;
+            cat.words.forEach((word, idx) => {
+                const bs = state.currentUserId ? getBestShot(state.currentUserId, word.en) : null;
+                html += `
+                <button onclick="startWordPractice('${cat.id}', ${idx}); playTone('tap')"
+                    class="bg-white rounded-2xl shadow-sm border-2 border-slate-100 flex flex-col items-center justify-center p-3 gap-2 aspect-square transition-all hover:shadow-md hover:border-indigo-200 active:scale-95 relative overflow-hidden">
+                    <div class="flex-1 flex items-center justify-center w-full min-h-0 relative">
+                        ${bs
+                            ? `<div class="bestshot-wrap w-full h-full flex items-center justify-center p-1">${bs}</div>
+                               <div class="absolute bottom-1 left-0 right-0 flex justify-center text-2xl leading-none select-none opacity-80">${word.emoji}</div>`
+                            : `<div class="text-5xl leading-none select-none">${word.emoji}</div>`
+                        }
+                    </div>
+                    <div class="text-base font-bold text-slate-600 truncate w-full text-center">${word.en}</div>
+                    <div class="text-xs text-slate-400 font-bold truncate w-full text-center">${stripHtml(word.jp)}</div>
+                </button>`;
+            });
+            html += `</div></div></div>`;
+            app.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // ★ 単語練習画面
+        // 「ながれ」：🌟×hintCount回 → 💪×noHintCount回 → ✏️なぞり → 一覧へ
+        function renderWordPractice(currentUser) {
+            const cat = DATA[state.wordListCategory];
+            if (!cat) { updateScreen('home'); return; }
+            const word = cat.words[state.practiceWordIndex];
+            const phase = state.practicePhase;
+            const sizeClass = getSlotSizeClass(word.en.length);
+            const hc = state.settings.hintCount;
+            const nc = state.settings.noHintCount;
+
+            // ステッパー表示（🌟×hc + 💪×nc + ✏️）
+            let stepperHtml = `<div class="flex gap-1 items-center justify-center mb-4 flex-wrap">`;
+            const allSteps = [
+                ...Array(hc).fill('🌟'),
+                ...Array(nc).fill('💪'),
+                '✏️'
+            ];
+            const stepColors = [
+                ...Array(hc).fill('bg-yellow-400'),
+                ...Array(nc).fill('bg-green-400'),
+                'bg-indigo-400'
+            ];
+            allSteps.forEach((label, i) => {
+                const isActive = i === phase;
+                const isDone = i < phase;
+                stepperHtml += `
+                <div class="flex items-center gap-1">
+                    <div class="w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center transition-all
+                        ${isActive ? stepColors[i] + ' text-white shadow-md scale-110' : isDone ? 'bg-slate-200 text-slate-400' : 'bg-slate-100 text-slate-300'}">
+                        ${label}
+                    </div>
+                    ${i < allSteps.length - 1 ? `<div class="w-2 h-0.5 ${i < phase ? 'bg-slate-300' : 'bg-slate-100'} rounded"></div>` : ''}
+                </div>`;
+            });
+            stepperHtml += `</div>`;
+
+            // phaseがhc未満 → ヒントあり、hc以上 → ヒントなし
+            const hintOn = phase < hc;
+
+            let html = `
+            <div class="min-h-screen bg-slate-100 flex flex-col items-center p-6 w-full">
+                <div class="w-full max-w-4xl">
+                    <div class="flex justify-between items-center mb-4 pt-2">
+                        <!-- ★左上に戻るボタン＋設定⚙ボタン -->
+                        <div class="flex gap-2">
+                            <button onclick="goBackFromPractice(); playTone('tap')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600 transition-colors">
+                                <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                            </button>
+                            <button onclick="updateScreen('settings'); playTone('tap')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-indigo-500 transition-colors" title="練習の設定">
+                                <i data-lucide="settings-2" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                        <div class="text-base font-bold text-slate-400">${state.practiceWordIndex + 1} / ${cat.words.length}</div>
+                        <button onclick="handlePracticeSpeak()" class="flex items-center gap-2 px-5 py-3 bg-indigo-50 text-indigo-500 rounded-full text-sm font-bold shadow-sm">
+                            <i data-lucide="ear" class="w-5 h-5"></i> きく
+                        </button>
+                    </div>
+
+                    ${stepperHtml}
+
+                    <div class="bg-white rounded-3xl shadow-lg p-8 mb-5 text-center relative overflow-hidden min-h-[260px] flex flex-col justify-center items-center">
+                        <div class="text-8xl mb-3 select-none">${word.emoji}</div>
+                        <p class="text-base text-slate-400 font-bold mb-1">Meaning</p>
+                        <h2 class="text-4xl font-bold text-slate-700 mb-6">${word.jp}</h2>
+                        <div class="flex flex-wrap justify-center gap-3 min-h-[90px] items-end pb-1 px-2">`;
+
+            const sylMap = getSyllableMap(word.en);
+
+            state.practiceAnswerSlots.forEach((letter, i) => {
+                const targetChar = word.en[i];
+                const isWrong = letter && letter.char !== targetChar;
+                const isSpace = letter && letter.char === ' ';
+
+                if (state.practiceIsCorrect) {
+                    html += `<div class="font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-purple-600 animate-in zoom-in duration-500 px-0.5 ${sizeClass.text}">${isSpace ? '&nbsp;' : letter.char}</div>`;
+                } else if (isSpace) {
+                    html += `<div class="${sizeClass.box} flex items-end justify-center"></div>`;
+                } else {
+                    html += `
+                    <button onclick="handlePracticeAnswerClick(${i})" ${!letter ? 'disabled' : ''} class="${sizeClass.box} ${sizeClass.text} rounded-lg flex items-end justify-center font-bold transition-all border-b-4 relative overflow-visible ${letter ? (isWrong ? 'text-red-500 border-red-300' : 'text-slate-700 border-slate-400 active:translate-y-1 active:border-b-0') : 'border-slate-200 border-dashed border-2'}">
+                        ${!letter && hintOn ? (() => {
+                            if (state.settings.colorCoding && sylMap) {
+                                const si = sylMap[i] ?? 0;
+                                const pastelColors = ['rgba(139,92,246,0.3)', 'rgba(244,63,94,0.3)', 'rgba(245,158,11,0.3)'];
+                                return `<span style="color:${pastelColors[si % pastelColors.length]}" class="pointer-events-none font-black">${targetChar}</span>`;
+                            }
+                            return `<span class="text-slate-200 pointer-events-none">${targetChar}</span>`;
+                        })() : ''}
+                        ${letter ? letter.char : ''}
+                        ${isWrong ? `<span class="absolute -top-3 -right-3 bg-white rounded-full shadow-sm z-20"><i data-lucide="alert-circle" class="w-5 h-5 text-red-500 fill-red-50"></i></span>` : ''}
+                    </button>`;
+                }
+            });
+
+            html += `</div></div>
+
+                <div class="w-full p-2">
+                    <p class="text-center text-slate-400 text-sm mb-4 font-bold tracking-widest">TAP</p>
+                    <div class="flex flex-wrap justify-center gap-4">`;
+
+            state.practicePoolLetters.forEach((letter) => {
+                const isUsed = state.practiceAnswerSlots.some(l => l?.id === letter.id);
+                html += `
+                <div class="relative ${sizeClass.box}">
+                    <button onclick="handlePracticePoolClick('${letter.id}')" ${isUsed || state.practiceIsCorrect ? 'disabled' : ''} class="absolute inset-0 w-full h-full bg-white rounded-xl flex items-end justify-center ${sizeClass.text} font-bold text-slate-700 shadow-md border-b-[5px] border-slate-200 active:border-b-0 active:translate-y-1 transition-all ${isUsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}">
+                        ${letter.char}
+                    </button>
+                    ${isUsed ? `<div class="absolute inset-0 rounded-xl border-2 border-slate-100 bg-slate-50/50"></div>` : ''}
+                </div>`;
+            });
+
+            html += `</div></div></div></div>`;
+            app.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // ★ てがき画面
+        // サブモード：なぞり（ガイド文字） / ヒントあり（上部にお手本） / ヒントなし（かけた後に正解表示）
+        function renderTracing(currentUser) {
+            const cat = DATA[state.wordListCategory];
+            if (!cat) { updateScreen('home'); return; }
+            const word = cat.words[state.practiceWordIndex];
+            const mode = state.tracingMode;
+            const isRevealed = state.tracingRevealed;
+            const sylMap = getSyllableMap(word.en);
+
+            // ── お手本スペル（ヒントあり mode）──
+            // なぜ上部に置くか：キャンバスより前に見えることで書く手掛かりになるため
+            const hintColors = ['#a78bfa', '#fb7185', '#fbbf24'];
+            const hintHtml = mode === 'hint' ? (() => {
+                const fontSize = word.en.length <= 4 ? '56px' : word.en.length <= 6 ? '48px' : word.en.length <= 8 ? '36px' : '28px';
+                const spellingHtml = state.settings.colorCoding && sylMap
+                    ? word.en.split('').map((ch, i) => `<span style="color:${hintColors[(sylMap[i] ?? 0) % 3]}">${ch}</span>`).join('')
+                    : `<span class="text-white">${word.en}</span>`;
+                return `
+                <div class="bg-white/10 rounded-2xl py-3 px-6 mb-3 text-center border border-white/10 w-full max-w-[600px] mx-auto">
+                    <div class="text-slate-400 text-xs font-black mb-1 tracking-widest">お手本</div>
+                    <div class="font-black tracking-widest" style="font-size:${fontSize}; line-height:1.1;">${spellingHtml}</div>
+                </div>`;
+            })() : '';
+
+            // ── キャンバス内ガイド文字（なぞり mode のみ）──
+            const pastelColors = ['rgba(167,139,250,0.25)', 'rgba(251,113,133,0.22)', 'rgba(251,191,36,0.22)'];
+            const guideFs = word.en.length <= 4 ? '100px' : word.en.length <= 6 ? '80px' : word.en.length <= 8 ? '64px' : word.en.length <= 10 ? '52px' : '40px';
+            const guideContent = state.settings.colorCoding && sylMap
+                ? word.en.split('').map((ch, i) => `<span style="color:${pastelColors[(sylMap[i] ?? 0) % 3]}">${ch}</span>`).join('')
+                : `<span style="color:rgba(0,0,0,0.07)">${word.en}</span>`;
+            const canvasGuide = mode === 'nazori'
+                ? `<div class="absolute inset-0 flex items-center justify-center pointer-events-none select-none px-4"
+                       style="font-size:${guideFs}; font-weight:900; letter-spacing:0.04em; z-index:1; white-space:nowrap;">
+                       ${guideContent}
+                   </div>`
+                : '';
+
+            // ── メインエリア：通常キャンバス or ヒントなし採点表示 ──
+            let mainAreaHtml = '';
+            if (mode === 'nohint' && isRevealed) {
+                // 正解表示エリア（かけた！ボタン押下後）
+                const revealFs = word.en.length <= 4 ? '60px' : word.en.length <= 6 ? '52px' : word.en.length <= 8 ? '40px' : '32px';
+                mainAreaHtml = `
+                <div class="w-full max-w-[600px] mx-auto flex flex-col gap-3">
+                    ${state.tracingSnapshotUrl ? `
+                    <div class="bg-white rounded-2xl overflow-hidden shadow-xl">
+                        <div class="text-[10px] text-slate-400 text-center pt-1.5 pb-0.5 font-bold">あなたの てがき</div>
+                        <img src="${state.tracingSnapshotUrl}" class="w-full object-contain" style="max-height:160px;">
+                    </div>` : ''}
+                    <div class="bg-white rounded-2xl p-5 text-center shadow-xl">
+                        <div class="text-slate-400 text-sm font-bold mb-2">せいかい</div>
+                        <div class="font-black text-indigo-600 tracking-wide" style="font-size:${revealFs}; line-height:1.1;">${word.en}</div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="tracingRetry()" class="flex-1 py-4 rounded-2xl bg-slate-600 text-white font-black text-lg hover:bg-slate-500 active:scale-95 transition-all flex items-center justify-center gap-2">
+                            🔄 なおす
+                        </button>
+                        <button onclick="tracingCorrect()" class="flex-1 py-4 rounded-2xl bg-green-500 text-white font-black text-lg hover:bg-green-400 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2">
+                            ✅ あってる
+                        </button>
+                    </div>
+                </div>`;
+            } else {
+                // 通常キャンバス
+                mainAreaHtml = `
+                <div class="w-full flex justify-center">
+                    <div class="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-[600px]" style="height: 280px;">
+                        ${canvasGuide}
+                        <canvas id="tracingCanvas" class="absolute inset-0 w-full h-full" style="z-index:2; touch-action:none;"></canvas>
+                    </div>
+                </div>`;
+            }
+
+            // ── アクションボタン（右上に配置） ──
+            let actionBtnHtml = '';
+            if (!isRevealed) {
+                if (mode === 'nohint') {
+                    // ヒントなし：「かけた！」ボタン→採点へ
+                    actionBtnHtml = `
+                    <button onclick="revealTracingAnswer()" class="py-2.5 px-6 rounded-2xl bg-indigo-500 text-white font-bold text-lg hover:bg-indigo-400 transition-colors shadow-lg flex items-center gap-2">
+                        <i data-lucide="check" class="w-5 h-5"></i> かけた！
+                    </button>`;
+                } else {
+                    // なぞり / ヒントあり：「できた！」ボタン→保存
+                    actionBtnHtml = `
+                    <button onclick="saveTracing()" class="py-2.5 px-6 rounded-2xl bg-indigo-500 text-white font-bold text-lg hover:bg-indigo-400 transition-colors shadow-lg flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i> できた！
+                    </button>`;
+                }
+            }
+
+            let html = `
+            <div class="min-h-screen bg-slate-800 flex flex-col p-5 w-full">
+
+                <!-- ヘッダー -->
+                <div class="flex items-center justify-between w-full max-w-5xl mx-auto mb-4">
+                    <div class="flex items-center gap-4">
+                        <div class="text-5xl">${word.emoji}</div>
+                        <div>
+                            <div class="text-white font-black text-xl">✏️ てがき</div>
+                            <div class="text-slate-300 text-base font-bold">${stripHtml(word.jp)}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${!isRevealed ? `
+                        <button onclick="clearTracing()" class="py-2.5 px-4 rounded-2xl bg-slate-600 text-white font-bold hover:bg-slate-500 transition-colors flex items-center gap-2">
+                            <i data-lucide="eraser" class="w-5 h-5"></i> けす
+                        </button>` : ''}
+                        ${actionBtnHtml}
+                        <button onclick="skipTracing()" class="py-2.5 px-3 text-slate-400 font-bold hover:text-slate-300 transition-colors text-sm">
+                            スキップ →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- サブモードタブ -->
+                <div class="flex gap-2 mb-4 bg-slate-700/60 rounded-2xl p-1.5 w-full max-w-5xl mx-auto">
+                    <button onclick="setTracingMode('nazori')" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition-all
+                        ${mode === 'nazori' ? 'bg-indigo-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}">
+                        📋 なぞり
+                    </button>
+                    <button onclick="setTracingMode('hint')" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition-all
+                        ${mode === 'hint' ? 'bg-yellow-400 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}">
+                        🌟 ヒントあり
+                    </button>
+                    <button onclick="setTracingMode('nohint')" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition-all
+                        ${mode === 'nohint' ? 'bg-green-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}">
+                        💪 ヒントなし
+                    </button>
+                </div>
+
+                <!-- メインエリア -->
+                <div class="w-full max-w-5xl mx-auto flex flex-col gap-3">
+                    ${hintHtml}
+                    ${mainAreaHtml}
+                </div>
+
+            </div>`;
+
+            app.innerHTML = html;
+            lucide.createIcons();
+            // キャンバスが表示されているときだけ初期化する
+            if (!isRevealed) {
+                setTimeout(initTracingCanvas, 100);
+            }
+        }
+
+        // ★ カルタ画面
+        function renderKaruta(currentUser) {
+            const cat = DATA[state.karutaCategory];
+            if (!cat) { updateScreen('home'); return; }
+            const words = state.karutaWords;
+            const remaining = words.length - state.karutaCleared.length;
+            let html = `
+            <div class="min-h-screen bg-slate-100 w-full flex flex-col p-4">
+                <div class="max-w-5xl mx-auto w-full flex flex-col flex-1">
+                    <div class="flex justify-between items-center mb-3">
+                        <button onclick="updateScreen('wordList'); playTone('tap')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="text-center">
+                            <div class="text-base font-bold text-slate-500">🃏 カルタ</div>
+                            <div class="text-sm font-bold text-slate-400">のこり <span class="text-2xl text-indigo-500 font-black">${remaining}</span> まい</div>
+                        </div>
+                        <button onclick="toggleKarutaHint()" class="flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-sm ${state.karutaHint ? 'bg-yellow-100 text-yellow-600 border-2 border-yellow-300' : 'bg-white text-slate-400 border-2 border-slate-200'}">
+                            <i data-lucide="lightbulb" class="w-5 h-5 ${state.karutaHint ? 'fill-yellow-400 text-yellow-400' : ''}"></i> ヒント
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-md p-4 mb-4 text-center border-4 ${state.karutaDone ? 'border-indigo-300' : 'border-slate-100'}">
+                        ${state.karutaDone
+                            ? `<div class="py-2"><div class="text-4xl mb-1">🎉</div><div class="text-xl font-black text-indigo-600">コンプリート！</div></div>`
+                            : state.karutaCurrentIdx >= 0
+                                ? `<div class="text-base font-bold text-slate-400 mb-2">これをさがそう！</div>
+                                   <button onclick="karutaReadCurrent()" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-500 text-white rounded-full font-bold text-lg shadow-md hover:bg-indigo-400 active:scale-95 transition-all">
+                                       <i data-lucide="volume-2" class="w-6 h-6"></i> もう一度きく
+                                   </button>`
+                                : `<div class="text-slate-400 font-bold text-base">↓ カードをタップしてスタート！</div>`
+                        }
+                    </div>`;
+            if (state.karutaDone) {
+                html += `
+                    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-modal-in">
+                        <div class="bg-white rounded-3xl p-10 text-center shadow-2xl border-4 border-indigo-200 mx-6">
+                            <div class="text-7xl mb-4">🎉</div>
+                            <div class="text-3xl font-black text-indigo-600 mb-2">コンプリート！</div>
+                            <div class="text-slate-400 font-bold mb-8">ぜんぶ みつけたね！</div>
+                            <div class="flex gap-4">
+                                <button onclick="startKaruta('${cat.id}')" class="flex-1 py-4 rounded-xl bg-indigo-500 text-white font-bold text-lg shadow-md hover:bg-indigo-400 transition-colors">もういちど</button>
+                                <button onclick="updateScreen('wordList'); playTone('tap')" class="flex-1 py-4 rounded-xl bg-slate-200 text-slate-700 font-bold text-lg shadow-md hover:bg-slate-300 transition-colors">一覧へ</button>
+                            </div>
+                        </div>
+                    </div>`;
+            } else {
+                const cols = words.length <= 6 ? 3 : 4;
+                html += `<div class="grid gap-3" style="grid-template-columns: repeat(${cols}, 1fr);">`;
+                words.forEach((word, i) => {
+                    const isCleared = state.karutaCleared.includes(i);
+                    html += `
+                    <button onclick="karutaTap(${i})" ${isCleared ? 'disabled' : ''}
+                        class="rounded-2xl font-bold flex flex-col items-center justify-center gap-1 p-3 transition-all border-4 select-none
+                            ${isCleared ? 'bg-indigo-100 border-indigo-200 opacity-40 scale-95 aspect-square' : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 active:scale-95 aspect-square'}">
+                        ${isCleared
+                            ? `<div class="text-3xl">✅</div>`
+                            : `<div class="text-3xl">${word.emoji}</div>
+                               <div class="text-sm font-bold text-slate-500 truncate w-full text-center leading-tight">${stripHtml(word.jp)}</div>
+                               ${state.karutaHint ? `<div class="text-base font-black text-indigo-600 truncate w-full text-center">${word.en}</div>` : ''}`
+                        }
+                    </button>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+            app.innerHTML = html;
+            lucide.createIcons();
+            if (state.karutaCurrentIdx >= 0 && !state.karutaDone) {
+                setTimeout(() => speak(words[state.karutaCurrentIdx].en), 300);
+            }
+        }
+
+        // ★ テストモード
+        function renderTest() {
+            const cat = DATA[state.testCategory];
+            if (!cat && state.testCategory !== 'challenge_test') { updateScreen('home'); return; }
+            const word = state.testWords[state.testWordIndex];
+            const total = state.testWords.length;
+            const current = state.testWordIndex + 1;
+            const isType = state.testInputMode === 'type';
+            let html = `
+            <div class="min-h-screen bg-slate-800 flex flex-col p-5 w-full">
+                <div class="max-w-3xl mx-auto w-full flex flex-col flex-1">
+                    <div class="flex justify-between items-center mb-4">
+                        <button onclick="updateScreen('wordList'); playTone('tap')" class="p-3 bg-slate-700 rounded-full text-slate-300 hover:text-white transition-colors">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <div class="text-center">
+                            <div class="text-slate-400 text-sm font-bold">📝 テスト</div>
+                            <div class="text-white font-black text-lg">${current} / ${total}</div>
+                        </div>
+                        <div class="flex bg-slate-700 rounded-xl p-1 gap-1">
+                            <button onclick="setTestInputMode('canvas')" class="px-3 py-2 rounded-lg font-bold text-sm transition-all ${!isType ? 'bg-white text-slate-700' : 'text-slate-400'}">✏️ 手書き</button>
+                            <button onclick="setTestInputMode('type')" class="px-3 py-2 rounded-lg font-bold text-sm transition-all ${isType ? 'bg-white text-slate-700' : 'text-slate-400'}">⌨️ タイプ</button>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-3xl p-5 mb-4 text-center">
+                        <div class="text-6xl mb-2">${word.emoji}</div>
+                        <div class="text-3xl font-bold text-slate-700">${word.jp}</div>
+                    </div>
+                    ${!state.testRevealed ? `
+                        ${isType ? `
+                        <div class="bg-slate-700 rounded-2xl p-4 mb-4">
+                            <input type="text" id="testTypeInput" value="${state.testInput}" oninput="state.testInput = this.value" onkeydown="if(event.key==='Enter') testReveal()"
+                                placeholder="スペルをタイプしてね..."
+                                class="w-full bg-slate-600 text-white font-bold text-2xl text-center p-3 rounded-xl outline-none placeholder-slate-400 tracking-widest"
+                                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                        </div>` : `
+                        <div class="relative bg-white rounded-2xl overflow-hidden mb-4" style="height:200px;">
+                            <canvas id="testCanvas" class="absolute inset-0 w-full h-full" style="touch-action:none;"></canvas>
+                            <button onclick="clearTestCanvas()" class="absolute top-3 right-3 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-sm font-bold hover:bg-slate-200">けす</button>
+                        </div>`}
+                        <button onclick="testReveal()" class="w-full py-4 rounded-2xl bg-indigo-500 text-white font-black text-xl shadow-lg hover:bg-indigo-400 active:scale-95 transition-all">かくにん →</button>
+                    ` : `
+                    ${isType ? `
+                        <div class="bg-white rounded-2xl p-5 mb-4 text-center">
+                            <div class="text-sm text-slate-400 font-bold mb-1">あなたのこたえ</div>
+                            <div class="text-3xl font-bold ${state.testInput.trim().toLowerCase() === word.en.toLowerCase() ? 'text-green-500' : 'text-red-500'} mb-3">
+                                ${state.testInput.trim() || '（なし）'}
+                                ${state.testInput.trim().toLowerCase() === word.en.toLowerCase() ? ' ✅' : ' ❌'}
+                            </div>
+                            <div class="text-sm text-slate-400 font-bold mb-1">せいかい</div>
+                            <div class="text-4xl font-black text-indigo-600 tracking-wide">${word.en}</div>
+                        </div>
+                        <button onclick="testNext(${state.testInput.trim().toLowerCase() === word.en.toLowerCase()})"
+                            class="w-full py-4 rounded-2xl ${state.testInput.trim().toLowerCase() === word.en.toLowerCase() ? 'bg-green-500' : 'bg-indigo-500'} text-white font-black text-xl shadow-lg active:scale-95 transition-all">
+                            つぎへ →
+                        </button>
+                    ` : `
+                        <div class="flex flex-col gap-3 mb-4">
+                            <div class="bg-white rounded-2xl overflow-hidden" style="height:160px;">
+                                <div class="text-xs font-bold text-slate-400 text-center pt-2 pb-1">あなたの手書き</div>
+                                ${state.testSnapshotUrl
+                                    ? `<img src="${state.testSnapshotUrl}" class="w-full object-contain" style="height:128px;">`
+                                    : `<div class="flex items-center justify-center h-32 text-slate-300 text-sm font-bold">（なし）</div>`}
+                            </div>
+                            <div class="bg-white rounded-2xl flex flex-col items-center justify-center py-4">
+                                <div class="text-xs font-bold text-slate-400 mb-2">せいかい</div>
+                                <div class="text-5xl font-black text-indigo-600 tracking-wide">${word.en}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button onclick="testNext(false)" class="flex-1 py-4 rounded-2xl bg-red-500 text-white font-black text-xl shadow-lg active:scale-95 transition-all">❌ まちがい</button>
+                            <button onclick="testNext(true)" class="flex-1 py-4 rounded-2xl bg-green-500 text-white font-black text-xl shadow-lg active:scale-95 transition-all">⭕ あってた</button>
+                        </div>
+                    `}
+                    `}
+                </div>
+            </div>`;
+            app.innerHTML = html;
+            lucide.createIcons();
+            if (!isType && !state.testRevealed) setTimeout(initTestCanvas, 80);
+            if (isType && !state.testRevealed) setTimeout(() => { const inp = document.getElementById('testTypeInput'); if (inp) inp.focus(); }, 100);
+        }
+
+        function renderTestResult() {
+            const isChallenge = state.testCategory === 'challenge_test';
+            const total = state.testResults.length;
+            const correct = state.testResults.filter(r => r.correct === true).length;
+            const wrong = state.testResults.filter(r => r.correct === false).length;
+            const pct = Math.round((correct / total) * 100);
+            let html = `
+            <div class="min-h-screen bg-slate-800 flex flex-col items-center justify-center p-6 w-full">
+                <div class="max-w-xl w-full bg-white rounded-3xl p-8 text-center shadow-2xl">
+                    <div class="text-6xl mb-4">${pct >= 80 ? '🎉' : pct >= 50 ? '💪' : '😊'}</div>
+                    <div class="text-3xl font-black text-slate-700 mb-1">テスト おわり！</div>
+                    <div class="text-5xl font-black ${pct >= 80 ? 'text-green-500' : 'text-indigo-500'} mb-6">${pct}点</div>
+                    <div class="flex gap-4 justify-center mb-8">
+                        <div class="bg-green-50 rounded-2xl p-4 flex-1"><div class="text-3xl font-black text-green-500">${correct}</div><div class="text-sm font-bold text-green-400">せいかい</div></div>
+                        <div class="bg-red-50 rounded-2xl p-4 flex-1"><div class="text-3xl font-black text-red-400">${wrong}</div><div class="text-sm font-bold text-red-300">まちがい</div></div>
+                    </div>
+                    ${wrong > 0 ? `
+                    <div class="bg-slate-50 rounded-2xl p-4 mb-6 text-left">
+                        <div class="text-sm font-black text-slate-400 mb-2">まちがえた ことば</div>
+                        <div class="flex flex-wrap gap-2">
+                            ${state.testResults.filter(r => r.correct === false).map(r => `<span class="px-3 py-1 bg-red-100 text-red-600 rounded-full font-bold text-sm">${r.word.en}</span>`).join('')}
+                        </div>
+                    </div>` : ''}
+                    <div class="flex gap-3">
+                        <button onclick="${isChallenge ? 'startChallengeTest()' : `startTest('${state.testCategory}')`}" class="flex-1 py-4 rounded-xl bg-indigo-500 text-white font-bold text-lg shadow-md hover:bg-indigo-400">もういちど</button>
+                        <button onclick="${isChallenge ? `updateScreen('home')` : `updateScreen('wordList')`}; playTone('tap')" class="flex-1 py-4 rounded-xl bg-slate-200 text-slate-700 font-bold text-lg shadow-md hover:bg-slate-300">${isChallenge ? 'ホームへ' : '一覧へ'}</button>
+                    </div>
+                </div>
+            </div>`;
+            app.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // ★ 設定ページ（独立画面）
+        // ★ 修正：選択肢を 0〜3 に変更（元は 0,1,2,3,5 だった）
+        function renderSettingsPage() {
+            const s = state.settings;
+
+            // ★ 修正：最大5回に変更（0〜5）
+            const countOptions = ['なし', 1, 2, 3, 4, 5];
+
+            const rows = [
+                { key: 'hintCount',   icon: '🌟', label: 'ヒントあり',  color: 'border-yellow-400 bg-yellow-50 text-yellow-700' },
+                { key: 'noHintCount', icon: '💪', label: 'ヒントなし',  color: 'border-green-400 bg-green-50 text-green-700' },
+            ];
+
+            let html = `
+            <div class="min-h-screen bg-slate-100 w-full p-6">
+                <div class="max-w-xl mx-auto pt-2">
+                    <div class="flex items-center gap-3 mb-6">
+                        <button onclick="updateScreen('wordList'); playTone('tap')" class="p-3 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600 transition-colors">
+                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                        </button>
+                        <h2 class="text-2xl font-black text-slate-700">⚙️ 練習の設定</h2>
+                    </div>
+
+                    <div class="space-y-5">
+
+                        <!-- 色分け -->
+                        <div class="bg-white rounded-2xl p-5 shadow-sm">
+                            <div class="text-sm font-black text-slate-400 mb-3 tracking-widest">🎨 音節の色分け</div>
+                            <button onclick="toggleSetting('colorCoding')"
+                                class="w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all
+                                ${s.colorCoding ? 'bg-indigo-50 border-indigo-300' : 'bg-slate-50 border-slate-200'}">
+                                <div>
+                                    <div class="font-bold text-slate-700 text-base">色分け</div>
+                                    <div class="text-xs text-slate-400 font-bold mt-0.5">音節ごとにパステルカラーで表示</div>
+                                </div>
+                                <div class="w-12 h-6 rounded-full transition-all ${s.colorCoding ? 'bg-indigo-400' : 'bg-slate-300'} relative flex-shrink-0">
+                                    <div class="absolute top-1 ${s.colorCoding ? 'left-7' : 'left-1'} w-4 h-4 bg-white rounded-full shadow transition-all"></div>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- 練習のながれ -->
+                        <div class="bg-white rounded-2xl p-5 shadow-sm">
+                            <div class="text-sm font-black text-slate-400 mb-1 tracking-widest">🎯 れんしゅうの ながれ</div>
+                            <div class="text-xs text-slate-400 font-bold mb-5">
+                                各モードの回数を設定します。<br>
+                                🌟ヒントあり → 💪ヒントなし → ✏️てがきの順に進みます。<br>
+                                0回にするとそのモードをスキップします。
+                            </div>
+
+                            <div class="grid gap-y-3" style="grid-template-columns: auto repeat(6, 1fr);">
+                                <!-- ヘッダー行 -->
+                                <div></div>
+                                ${countOptions.map(c => `<div class="text-center text-xs font-black text-slate-400 pb-1">${c}</div>`).join('')}
+
+                                <!-- 🌟ヒントあり行 / 💪ヒントなし行 -->
+                                ${rows.map(row => {
+                                    const current = s[row.key];
+                                    return `
+                                    <div class="flex items-center gap-2 pr-3 py-1">
+                                        <span class="text-xl">${row.icon}</span>
+                                        <span class="text-sm font-bold text-slate-600 whitespace-nowrap">${row.label}</span>
+                                    </div>
+                                    ${countOptions.map(c => {
+                                        const val = c === 'なし' ? 0 : c;
+                                        const isSelected = current === val;
+                                        return `
+                                        <button onclick="setPracticeCount('${row.key}', ${val})"
+                                            class="mx-0.5 h-10 rounded-xl font-bold text-sm transition-all border-2
+                                            ${isSelected ? row.color + ' border-current shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'}">
+                                            ${c}
+                                        </button>`;
+                                    }).join('')}`;
+                                }).join('')}
+
+                                <!-- ✏️てがき（固定1回） -->
+                                <div class="flex items-center gap-2 pr-3 py-1">
+                                    <span class="text-xl">✏️</span>
+                                    <span class="text-sm font-bold text-slate-600">てがき</span>
+                                </div>
+                                <div class="col-span-6 flex items-center pl-1">
+                                    <span class="px-4 py-2 rounded-xl bg-indigo-50 border-2 border-indigo-300 text-indigo-700 font-bold text-sm">1回（固定）</span>
+                                </div>
+                            </div>
+
+                            <!-- 現在の設定プレビュー -->
+                            <div class="mt-5 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-xs font-black text-slate-400 mb-2">いまの設定での ながれ</div>
+                                <div class="flex flex-wrap items-center gap-1 text-sm font-bold">
+                                    ${s.hintCount > 0
+                                        ? `<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-lg">🌟×${s.hintCount}</span>`
+                                        : ''
+                                    }
+                                    ${s.hintCount > 0 && s.noHintCount > 0 ? '<span class="text-slate-300">→</span>' : ''}
+                                    ${s.noHintCount > 0
+                                        ? `<span class="px-2 py-1 bg-green-100 text-green-700 rounded-lg">💪×${s.noHintCount}</span>`
+                                        : ''
+                                    }
+                                    ${(s.hintCount > 0 || s.noHintCount > 0) ? '<span class="text-slate-300">→</span>' : ''}
+                                    <span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-lg">✏️×1</span>
+                                    ${s.hintCount === 0 && s.noHintCount === 0
+                                        ? '<span class="text-slate-400 text-xs ml-1">（てがきのみ）</span>'
+                                        : ''
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>`;
+
+            app.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function renderStampBook(progress, history) {
             const totalStamps = Object.values(DATA).length;
             const collectedStamps = Object.values(DATA).filter(cat => progress[cat.id]?.stamp).length;
             const percentage = Math.round((collectedStamps / totalStamps) * 100);
-
             let html = `
             <div class="min-h-screen bg-amber-50 p-4 w-full">
                 <div class="max-w-md mx-auto pt-2">
-                    <div class="flex justify-between items-center mb-6">
+                    <div class="flex justify-between items-center mb-4">
                         <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-amber-400 hover:text-amber-600 transition-colors">
                             <i data-lucide="arrow-left" class="w-6 h-6"></i>
                         </button>
-                        <h2 class="text-xl font-bold text-amber-900 flex items-center gap-2">
-                            👑スタンプちょう👑
-                        </h2>
+                        <h2 class="text-xl font-bold text-amber-900 flex items-center gap-2">👑スタンプちょう👑</h2>
                         <div class="w-10"></div>
                     </div>
+                    <div class="flex gap-2 mb-4 bg-white rounded-2xl p-1.5 shadow-sm border-2 border-amber-100">
+                        <button onclick="setStampBookPage(1)" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${state.stampBookPage === 1 ? 'bg-amber-400 text-white shadow-sm' : 'text-amber-600 hover:bg-amber-50'}">
+                            <i data-lucide="stamp" class="w-4 h-4"></i> スタンプ
+                        </button>
+                        <button onclick="setStampBookPage(2)" class="flex-1 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${state.stampBookPage === 2 ? 'bg-amber-400 text-white shadow-sm' : 'text-amber-600 hover:bg-amber-50'}">
+                            <i data-lucide="calendar" class="w-4 h-4"></i> カレンダー
+                        </button>
+                    </div>`;
 
-                    <div class="mb-6 bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100">
+            if (state.stampBookPage === 1) {
+                html += `
+                    <div class="mb-4 bg-white p-4 rounded-2xl shadow-sm border-2 border-amber-100">
                         <div class="flex justify-between items-end mb-2">
                             <span class="text-sm font-bold text-amber-800">あつめた数</span>
                             <span class="text-2xl font-black text-amber-600">${collectedStamps} <span class="text-sm text-amber-400 font-bold">/ ${totalStamps}</span></span>
@@ -700,40 +1328,87 @@
                             <div class="h-full bg-amber-400 rounded-full transition-all duration-1000 ease-out" style="width: ${percentage}%"></div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-3xl p-4 shadow-xl border-4 border-amber-200 min-h-[500px] relative overflow-hidden">
-                        <div class="absolute top-0 left-0 w-full h-6 bg-gradient-to-b from-amber-50 to-transparent opacity-50 pointer-events-none"></div>
-                        
                         <div class="grid grid-cols-4 sm:grid-cols-5 gap-2 relative z-10 pb-4">`;
-
-            Object.values(DATA).forEach(cat => {
-                const p = progress[cat.id] || { perfectCount: 0, stamp: null };
-                const hasStamp = !!p.stamp;
-                const remaining = Math.max(0, 3 - p.perfectCount);
-
-                html += `
-                <div class="flex flex-col items-center group">
-                    <div class="aspect-square w-full rounded-lg border-2 flex items-center justify-center relative bg-slate-50 transition-all
-                        ${hasStamp ? 'border-amber-300 bg-amber-50 shadow-sm scale-100' : 'border-dashed border-slate-200 opacity-70'}
-                    ">
-                        ${hasStamp 
-                            ? `<div class="text-3xl animate-shine drop-shadow-sm filter">${p.stamp}</div>`
-                            : `<div class="text-center w-full">
-                                ${p.perfectCount > 0 
-                                    ? `<div class="text-[10px] font-bold text-amber-500 bg-amber-100 rounded-full px-1 mx-1">あと${remaining}</div>`
-                                    : ``
-                                }
-                                <div class="opacity-20 text-xl grayscale mt-0.5">${cat.words[0].emoji}</div>
-                               </div>`
+                Object.values(DATA).forEach(cat => {
+                    const p = progress[cat.id] || { perfectCount: 0, stamp: null };
+                    const hasStamp = !!p.stamp;
+                    const remaining = Math.max(0, 3 - p.perfectCount);
+                    html += `
+                    <div class="flex flex-col items-center group">
+                        <div class="aspect-square w-full rounded-lg border-2 flex items-center justify-center relative bg-slate-50 transition-all ${hasStamp ? 'border-amber-300 bg-amber-50 shadow-sm' : 'border-dashed border-slate-200 opacity-70'}">
+                            ${hasStamp
+                                ? `<div class="text-3xl animate-shine drop-shadow-sm filter">${p.stamp}</div>`
+                                : `<div class="text-center w-full">${p.perfectCount > 0 ? `<div class="text-[10px] font-bold text-amber-500 bg-amber-100 rounded-full px-1 mx-1">あと${remaining}</div>` : ''}<div class="opacity-20 text-xl grayscale mt-0.5">${cat.words[0].emoji}</div></div>`
+                            }
+                        </div>
+                        <div class="text-[9px] font-bold text-slate-400 mt-1 w-full text-center truncate leading-tight tracking-tighter">${cat.label.split('(')[0].replace(/[0-9①②]/g, '')}</div>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            } else {
+                const year = state.calendarYear;
+                const month = state.calendarMonth;
+                const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+                const dayNames = ['日','月','火','水','木','金','土'];
+                const firstDayOfWeek = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const dateMap = {};
+                (history || []).forEach(record => {
+                    const dateStr = record.date.split(' ')[0];
+                    const parts = dateStr.split('/');
+                    const recYear = parseInt(parts[0]);
+                    const recMonth = parseInt(parts[1]) - 1;
+                    const recDay = parseInt(parts[2]);
+                    if (recYear === year && recMonth === month) {
+                        const key = recDay;
+                        if (!dateMap[key]) dateMap[key] = [];
+                        if (record.categoryId === 'challenge_mode') {
+                            if (!dateMap[key].includes('🔥')) dateMap[key].push('🔥');
+                        } else {
+                            const emoji = DATA[record.categoryId]?.words[0]?.emoji;
+                            if (emoji && !dateMap[key].includes(emoji)) dateMap[key].push(emoji);
                         }
-                    </div>
-                    <div class="text-[9px] font-bold text-slate-400 mt-1 w-full text-center truncate leading-tight tracking-tighter">
-                        ${cat.label.split('(')[0].replace(/[0-9①②]/g, '')}
-                    </div>
-                </div>`;
-            });
-
-            html += `</div></div></div></div>`;
+                    }
+                });
+                const today = new Date();
+                const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
+                const todayDay = isCurrentMonth ? today.getDate() : -1;
+                html += `
+                    <div class="bg-white rounded-3xl shadow-xl border-4 border-amber-200 overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-3 bg-amber-400">
+                            <button onclick="navigateCalendar(-1)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/30 text-white font-bold hover:bg-white/50 transition-colors"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                            <span class="text-xl font-black text-white drop-shadow-sm">${year}年 ${monthNames[month]}</span>
+                            <button onclick="navigateCalendar(1)" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/30 text-white font-bold hover:bg-white/50 transition-colors"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
+                        </div>
+                        <div class="grid grid-cols-7 bg-amber-50 border-b border-amber-100">
+                            ${dayNames.map((d, i) => `<div class="py-2 text-center text-xs font-black ${i===0 ? 'text-red-500' : i===6 ? 'text-blue-500' : 'text-slate-500'}">${d}</div>`).join('')}
+                        </div>
+                        <div class="grid grid-cols-7 p-2 gap-1">`;
+                for (let i = 0; i < firstDayOfWeek; i++) html += `<div class="aspect-square"></div>`;
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayOfWeek = (firstDayOfWeek + day - 1) % 7;
+                    const isToday = (day === todayDay);
+                    const dayEmojis = dateMap[day] || [];
+                    const hasRecord = dayEmojis.length > 0;
+                    const textColor = dayOfWeek === 0 ? 'text-red-500' : dayOfWeek === 6 ? 'text-blue-500' : 'text-slate-700';
+                    const bgStyle = isToday ? 'bg-amber-100 border-2 border-amber-400 shadow-sm' : hasRecord ? 'bg-green-50 border border-green-200' : 'bg-slate-50 border border-slate-100';
+                    html += `
+                        <div class="rounded-lg p-0.5 flex flex-col items-center min-h-[3rem] ${bgStyle}">
+                            <div class="text-[10px] font-bold ${textColor} ${isToday ? 'bg-amber-400 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px]' : ''}">${day}</div>
+                            ${hasRecord ? `<div class="flex flex-wrap justify-center gap-0 mt-0.5">${dayEmojis.slice(0, 3).map(e => `<span class="text-sm leading-tight">${e}</span>`).join('')}${dayEmojis.length > 3 ? `<span class="text-[8px] font-bold text-slate-400">+${dayEmojis.length-3}</span>` : ''}</div>` : ''}
+                        </div>`;
+                }
+                html += `</div>`;
+                const monthTotal = (history || []).filter(r => { const parts = r.date.split(' ')[0].split('/'); return parseInt(parts[0]) === year && parseInt(parts[1]) - 1 === month; }).length;
+                html += `
+                        <div class="px-4 py-3 bg-amber-50 border-t border-amber-100 flex items-center justify-between">
+                            <span class="text-sm font-bold text-amber-700">この月のがんばり</span>
+                            <span class="text-xl font-black text-amber-600">${monthTotal}<span class="text-sm font-bold text-amber-400"> かい</span></span>
+                        </div>
+                    </div>`;
+            }
+            html += `</div></div>`;
             app.innerHTML = html;
         }
 
@@ -743,18 +1418,12 @@
             <div class="min-h-screen bg-slate-50 p-4 flex items-center justify-center w-full">
                 <div class="max-w-md w-full bg-white rounded-3xl p-6 shadow-xl border-4 border-yellow-200">
                     <div class="text-center mb-6">
-                        <div class="inline-block p-3 rounded-full bg-yellow-100 text-yellow-500 mb-4 animate-bounce">
-                            <i data-lucide="crown" class="w-10 h-10"></i>
-                        </div>
+                        <div class="inline-block p-3 rounded-full bg-yellow-100 text-yellow-500 mb-4 animate-bounce"><i data-lucide="crown" class="w-10 h-10"></i></div>
                         <h2 class="text-2xl font-bold text-slate-800">スタンプゲット！</h2>
                         <p class="text-slate-500 font-bold mt-2 text-sm">「${cat.label.split('(')[0]}」の<br/>スタンプを えらんでね！</p>
                     </div>
                     <div class="grid grid-cols-5 gap-3 max-h-80 overflow-y-auto p-2">
-                        ${STAMP_OPTIONS.map(s => `
-                            <button onclick="getStamp('${s}')" class="aspect-square text-3xl flex items-center justify-center rounded-xl hover:bg-yellow-50 hover:scale-110 transition-all cursor-pointer border-2 border-transparent hover:border-yellow-300">
-                                ${s}
-                            </button>
-                        `).join('')}
+                        ${STAMP_OPTIONS.map(s => `<button onclick="getStamp('${s}')" class="aspect-square text-3xl flex items-center justify-center rounded-xl hover:bg-yellow-50 hover:scale-110 transition-all cursor-pointer border-2 border-transparent hover:border-yellow-300">${s}</button>`).join('')}
                     </div>
                 </div>
             </div>`;
@@ -765,21 +1434,14 @@
             let cat = DATA[state.currentCategory];
             if (state.currentCategory === 'challenge_mode') {
                 const challengeWords = state.allUsersData[state.currentUserId].challengeWords || [];
-                cat = {
-                    id: 'challenge_mode',
-                    label: 'チャレンジBOX',
-                    color: 'from-red-500 to-rose-600',
-                    words: challengeWords
-                };
+                cat = { id: 'challenge_mode', label: 'チャレンジBOX', color: 'from-red-500 to-rose-600', words: challengeWords };
             }
-
             const currentWordData = cat.words[state.questionIndex];
             const sizeClass = getSlotSizeClass(currentWordData.en.length);
             const progressPercent = ((state.questionIndex) / cat.words.length) * 100;
-
             let html = `
             <div class="min-h-screen bg-slate-100 flex flex-col items-center p-4 transition-all w-full">
-                <div class="w-full md:max-w-4xl max-w-md flex justify-between items-center mb-6 pt-2">
+                <div class="w-full max-w-5xl flex justify-between items-center mb-4 pt-2">
                     <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600">
                         <i data-lucide="home" class="w-6 h-6"></i>
                     </button>
@@ -789,7 +1451,6 @@
                         </div>
                         <div class="text-center text-xs font-bold text-slate-400 mt-1">${state.questionIndex + 1} / ${cat.words.length}</div>
                     </div>
-                    
                     <div class="flex gap-2">
                         <button onclick="toggleHint()" class="flex items-center gap-1 px-3 py-2 rounded-full transition-all shadow-sm ${state.showHint ? 'bg-yellow-100 text-yellow-600 border-2 border-yellow-200' : 'bg-white text-slate-400 border-2 border-slate-200'}">
                             <i data-lucide="lightbulb" class="w-5 h-5 ${state.showHint ? 'fill-yellow-400 text-yellow-400' : ''}"></i>
@@ -800,49 +1461,48 @@
                         </button>
                     </div>
                 </div>
-
-                <div class="w-full md:max-w-4xl max-w-md flex-1 flex flex-col items-center">
-                    <div class="w-full bg-white rounded-3xl shadow-lg p-6 mb-6 text-center relative overflow-hidden min-h-[300px] flex flex-col justify-center items-center transition-all duration-500">
-                        ${state.isCorrect ? `<div class="absolute inset-0 bg-white z-0 flex items-center justify-center overflow-hidden"><div class="absolute inset-0 bg-gradient-to-b from-white via-white to-green-50 opacity-50"></div></div>` : ''}
-                        
+                <div class="w-full max-w-5xl flex-1 flex flex-col items-center">
+                    <div class="w-full bg-white rounded-3xl shadow-lg p-6 mb-4 text-center relative overflow-hidden min-h-[260px] flex flex-col justify-center items-center transition-all duration-500">
+                        ${state.isCorrect ? `<div class="absolute inset-0 bg-gradient-to-b from-white via-white to-green-50 opacity-50"></div>` : ''}
                         <div class="z-10 relative w-full flex flex-col items-center">
-                            <div class="text-7xl sm:text-8xl mb-2 animate-in zoom-in fade-in duration-500 hover:scale-110 transition-transform cursor-default select-none no-select">${currentWordData.emoji}</div>
+                            <div class="text-7xl sm:text-8xl mb-2 select-none no-select">${currentWordData.emoji}</div>
                             <p class="text-sm text-slate-400 font-bold tracking-widest uppercase mb-1">Meaning</p>
-                            <h2 class="text-4xl font-bold text-slate-800 mb-6 transition-all duration-500">${currentWordData.jp}</h2>
-
-                            <div class="flex gap-4 mb-8">
+                            <h2 class="text-4xl font-bold text-slate-800 mb-4">${currentWordData.jp}</h2>
+                            <div class="flex gap-4 mb-6">
                                 <button onclick="handleSpeak()" class="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full font-bold text-sm hover:bg-indigo-100 transition-colors">
                                     <i data-lucide="ear" class="w-5 h-5"></i> きく
                                 </button>
                             </div>
-
                             <div class="flex flex-wrap justify-center gap-2 min-h-[100px] items-end pb-2 px-2">`;
-
+            const gameSylMap = getSyllableMap(currentWordData.en);
+            const gamePastel = ['rgba(139,92,246,0.3)','rgba(244,63,94,0.3)','rgba(245,158,11,0.3)'];
             state.answerSlots.forEach((letter, i) => {
                 const targetChar = currentWordData.en[i];
                 const isWrong = letter && letter.char !== targetChar;
-                const isSpace = letter && letter.char === ' '; 
-
+                const isSpace = letter && letter.char === ' ';
                 if (state.isCorrect) {
-                    html += `<div class="font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-purple-600 animate-in zoom-in duration-500 px-0.5 ${sizeClass.text}" style="text-shadow: 0 4px 12px rgba(99, 102, 241, 0.2)">${isSpace ? '&nbsp;' : letter.char}</div>`;
+                    html += `<div class="font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-purple-600 px-0.5 ${sizeClass.text}">${isSpace ? '&nbsp;' : letter.char}</div>`;
                 } else if (isSpace) {
                     html += `<div class="${sizeClass.box} flex items-end justify-center"></div>`;
                 } else {
+                    const hintChar = (!letter && state.showHint) ? (() => {
+                        if (state.settings.colorCoding && gameSylMap) {
+                            const si = gameSylMap[i] ?? 0;
+                            return `<span style="color:${gamePastel[si % gamePastel.length]}" class="pointer-events-none font-black">${targetChar}</span>`;
+                        }
+                        return `<span class="text-slate-200 pointer-events-none">${targetChar}</span>`;
+                    })() : '';
                     html += `
                     <button onclick="handleAnswerClick(${i})" ${!letter ? 'disabled' : ''} class="${sizeClass.box} ${sizeClass.text} rounded-lg flex items-end justify-center font-bold transition-all border-b-4 relative overflow-visible ${letter ? (isWrong ? 'text-red-500 border-red-300 hover:text-red-600' : 'text-indigo-600 border-indigo-400 hover:text-indigo-700 active:translate-y-1 active:border-b-0') : 'border-slate-200 border-dashed border-2'}">
-                        ${!letter && state.showHint ? `<span class="text-slate-200 pointer-events-none">${targetChar}</span>` : ''}
-                        ${letter ? letter.char : ''}
+                        ${hintChar}${letter ? letter.char : ''}
                         ${isWrong ? `<span class="absolute -top-3 -right-3 bg-white rounded-full shadow-sm z-20"><i data-lucide="alert-circle" class="w-5 h-5 text-red-500 fill-red-50"></i></span>` : ''}
                     </button>`;
                 }
             });
-
             html += `</div></div></div>
-            
-            <div class="w-full p-4">
-                <p class="text-center text-slate-400 text-sm mb-4 font-bold tracking-widest">TAP or TYPE</p>
+            <div class="w-full p-3">
+                <p class="text-center text-slate-400 text-xs mb-3 font-bold tracking-widest">TAP or TYPE</p>
                 <div class="flex flex-wrap justify-center gap-4 md:gap-6">`;
-            
             state.poolLetters.forEach((letter) => {
                 const isUsed = state.answerSlots.some(l => l?.id === letter.id);
                 html += `
@@ -853,19 +1513,16 @@
                     ${isUsed ? `<div class="absolute inset-0 w-full h-full rounded-xl border-2 border-slate-100 bg-slate-50/50"></div>` : ''}
                 </div>`;
             });
-
             html += `</div></div></div>`;
-
             if (state.isCorrect) {
                 html += `
-                <div class="fixed bottom-8 w-full max-w-md px-4 animate-in slide-in-from-bottom-4 fade-in duration-300 z-50">
+                <div class="fixed bottom-6 w-full max-w-lg px-4 animate-in slide-in-from-bottom-4 fade-in duration-300 z-50">
                     <button onclick="nextQuestion()" class="w-full py-5 bg-green-500 text-white rounded-2xl font-bold text-2xl shadow-xl border-b-8 border-green-600 active:border-b-0 active:translate-y-2 flex items-center justify-center gap-3 transition-all hover:bg-green-400">
                         <span>NEXT</span> <i data-lucide="arrow-right" class="w-8 h-8"></i>
                     </button>
                     <p class="text-center text-green-700 text-xs font-bold mt-2">Press Enter</p>
                 </div>`;
             }
-
             html += `</div>`;
             app.innerHTML = html;
         }
@@ -873,83 +1530,54 @@
         function renderResult(user, progress) {
             let catLabel = "";
             let catId = state.currentCategory;
-            
             const challengeRemaining = (state.allUsersData[state.currentUserId].challengeWords || []).length;
-
             if (state.currentCategory === 'challenge_mode') {
                 catLabel = "チャレンジBOX";
             } else {
                 catLabel = DATA[state.currentCategory].label.split('(')[0];
             }
-
             const { isPass, score, canGetStamp, gotExtraBadge } = state.resultInfo;
-
-            // アイコン表示ロジックの分岐
             let iconHtml = '';
-
             if (state.currentCategory === 'challenge_mode') {
-                // --- チャレンジモードの場合 ---
                 if (challengeRemaining === 0) {
-                    // 完食！
                     iconHtml = `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎉</span><span class="absolute -bottom-4 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-white font-black px-4 py-1 rounded-full text-lg shadow-md whitespace-nowrap border-2 border-yellow-200">空っぽ！</span></div>`;
                 } else {
-                    // まだ残ってる
                     iconHtml = `<div class="relative"><i data-lucide="layers" class="w-24 h-24 text-orange-400 fill-orange-100 animate-bounce"></i><span class="absolute -bottom-2 -right-2 bg-red-500 text-white font-bold px-3 py-1 rounded-full text-sm shadow-md whitespace-nowrap border-2 border-white">あと ${challengeRemaining} もん</span></div>`;
                 }
             } else {
-                // --- 通常モードの場合 ---
                 if (canGetStamp) {
-                    iconHtml = `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎁</span><i data-lucide="sparkles" class="absolute -top-4 -right-4 w-12 h-12 text-yellow-300 animate-ping"></i></div>`; 
+                    iconHtml = `<div class="relative"><span class="text-8xl animate-bounce inline-block">🎁</span><i data-lucide="sparkles" class="absolute -top-4 -right-4 w-12 h-12 text-yellow-300 animate-ping"></i></div>`;
                 } else if (isPass) {
                     iconHtml = `<div class="relative"><i data-lucide="trophy" class="w-24 h-24 text-yellow-400 fill-yellow-100 animate-bounce"></i><span class="absolute -bottom-2 -right-2 bg-red-500 text-white font-bold px-2 py-1 rounded-full text-xs shadow-md border-2 border-white">${score}%</span></div>`;
                 } else {
                     iconHtml = `<i data-lucide="thumbs-up" class="w-24 h-24 text-slate-400 fill-slate-100 animate-bounce"></i>`;
                 }
             }
-
             let html = `
             <div class="min-h-screen bg-slate-50 flex items-center justify-center p-4 w-full">
                 <div class="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-xl border-4 border-yellow-200 relative overflow-hidden">
-                    <div class="mb-6 flex justify-center relative z-10">
-                        ${iconHtml}
-                    </div>
-                    
-                    ${isPass 
-                        ? `<h2 class="text-4xl font-black text-yellow-500 mb-2 drop-shadow-sm">Great!!</h2>` 
-                        : `<h2 class="text-3xl font-bold text-slate-800 mb-2">Good Job!</h2>`
-                    }
-                    
-                    <p class="text-lg text-slate-600 font-bold mb-6">
-                        「${catLabel}」<br/>
-                        ${isPass ? `よくできたね！` : `最後まで がんばった！`}
-                    </p>
-
+                    <div class="mb-6 flex justify-center relative z-10">${iconHtml}</div>
+                    ${isPass ? `<h2 class="text-4xl font-black text-yellow-500 mb-2 drop-shadow-sm">Great!!</h2>` : `<h2 class="text-3xl font-bold text-slate-800 mb-2">Good Job!</h2>`}
+                    <p class="text-lg text-slate-600 font-bold mb-6">「${catLabel}」<br/>${isPass ? `よくできたね！` : `最後まで がんばった！`}</p>
                     ${isPass && !canGetStamp && state.currentCategory !== 'challenge_mode' ? `
                         ${gotExtraBadge ? `
-                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
-                            <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
-                                <i data-lucide="star" class="w-6 h-6 fill-yellow-400"></i><span class="text-xl">100点 まんてん！</span><i data-lucide="star" class="w-6 h-6 fill-yellow-400"></i>
-                            </div>
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6">
+                            <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1"><i data-lucide="star" class="w-6 h-6 fill-yellow-400"></i><span class="text-xl">100点 まんてん！</span><i data-lucide="star" class="w-6 h-6 fill-yellow-400"></i></div>
                             <p class="text-slate-700 font-bold mt-2">メニューの バッジが ふえたよ！</p>
                         </div>` : `
-                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6 animate-in zoom-in">
-                            <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1">
-                                <i data-lucide="sparkles" class="w-5 h-5"></i><span>正解率 ${score}%！</span><i data-lucide="sparkles" class="w-5 h-5"></i>
-                            </div>
+                        <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6">
+                            <div class="flex items-center justify-center gap-2 text-yellow-600 font-bold mb-1"><i data-lucide="sparkles" class="w-5 h-5"></i><span>正解率 ${score}%！</span><i data-lucide="sparkles" class="w-5 h-5"></i></div>
                             <p class="text-slate-700 font-bold">ごうかく！</p>
                             ${progress[catId]?.stamp ? '' : `<p class="text-sm text-slate-500 font-bold mt-2">あと ${Math.max(0, 3 - progress[catId].perfectCount)}かいで<br/>スタンプ ゲット！</p>`}
                         </div>`}
                     ` : ''}
-
                     ${canGetStamp ? `
-                    <div class="mb-6 animate-in zoom-in duration-500">
-                        <button onclick="updateScreen('stampSelect'); playTone('tap')" class="w-full py-4 bg-yellow-400 text-white rounded-2xl font-black text-xl shadow-lg border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 animate-pulse">
-                            スタンプを えらぶ！
-                        </button>
+                    <div class="mb-6">
+                        <button onclick="updateScreen('stampSelect'); playTone('tap')" class="w-full py-4 bg-yellow-400 text-white rounded-2xl font-black text-xl shadow-lg border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 animate-pulse">スタンプを えらぶ！</button>
                     </div>` : `
                     <div class="flex flex-col gap-3 relative z-10">
-                        ${state.currentCategory !== 'challenge_mode' ? 
-                        `<button onclick="startCategory('${catId}')" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                        ${state.currentCategory !== 'challenge_mode' ?
+                        `<button onclick="startCategoryGame('${catId}')" class="w-full py-4 rounded-xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
                             <i data-lucide="refresh-ccw" class="w-5 h-5"></i> もういちど やる
                         </button>` : ''}
                         <button onclick="updateScreen('home'); playTone('tap')" class="w-full py-4 rounded-xl bg-slate-200 text-slate-700 font-bold text-lg hover:bg-slate-300 transition-colors flex items-center justify-center gap-2">
@@ -966,12 +1594,8 @@
             <div class="min-h-screen bg-slate-50 p-4 w-full">
                 <div class="max-w-md mx-auto pt-2 h-full flex flex-col">
                     <div class="flex justify-between items-center mb-6">
-                        <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600">
-                            <i data-lucide="arrow-left" class="w-6 h-6"></i>
-                        </button>
-                        <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2">
-                            <i data-lucide="history" class="w-6 h-6 text-indigo-500"></i> がくしゅう きろく
-                        </h2>
+                        <button onclick="updateScreen('home'); playTone('tap')" class="p-2 bg-white rounded-full shadow-sm text-slate-400 hover:text-slate-600"><i data-lucide="arrow-left" class="w-6 h-6"></i></button>
+                        <h2 class="text-xl font-bold text-slate-700 flex items-center gap-2"><i data-lucide="history" class="w-6 h-6 text-indigo-500"></i> がくしゅう きろく</h2>
                         <div class="w-10"></div>
                     </div>
                     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 flex-1 overflow-hidden flex flex-col min-h-[400px]">
@@ -983,7 +1607,6 @@
                             ${history.length > 0 ? `<button onclick="clearHistory()" class="text-xs flex items-center gap-1 text-red-400 hover:text-red-600 font-bold bg-white px-3 py-1.5 rounded-full border border-red-100"><i data-lucide="trash-2" class="w-3 h-3"></i> ぜんぶけす</button>` : ''}
                         </div>
                         <div class="overflow-y-auto flex-1 p-2 space-y-2">`;
-
             if (history.length === 0) {
                 html += `<div class="h-40 flex items-center justify-center text-slate-400 font-bold">まだ きろくが ないよ</div>`;
             } else {
@@ -994,85 +1617,44 @@
                     } else {
                         cat = DATA[record.categoryId];
                     }
-                    
                     html += `
                     <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br ${cat?.color || 'from-slate-300 to-slate-400'} flex items-center justify-center text-2xl text-white">
-                            ${cat?.words[0].emoji || '?'}
-                        </div>
-                        <div class="flex-1">
-                            <div class="font-bold text-slate-700">${cat?.label.split('(')[0] || 'Unknown'}</div>
-                            <div class="text-xs text-slate-400 font-bold">${record.date}</div>
-                        </div>
+                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br ${cat?.color || 'from-slate-300 to-slate-400'} flex items-center justify-center text-2xl text-white">${cat?.words[0].emoji || '?'}</div>
+                        <div class="flex-1"><div class="font-bold text-slate-700">${cat?.label.split('(')[0] || 'Unknown'}</div><div class="text-xs text-slate-400 font-bold">${record.date}</div></div>
                         ${record.isPass ? `<div class="bg-yellow-100 text-yellow-600 px-2 py-1 rounded-md text-xs font-bold border border-yellow-200">OK!</div>` : ''}
                     </div>`;
                 });
             }
-
             html += `</div></div></div></div>`;
             app.innerHTML = html;
         }
 
         // --- 6. アクション & イベントハンドラ ---
 
-        function toggleSound() {
-            state.isSoundOn = !state.isSoundOn;
-            initAudio(); // ユーザーアクションでAudioContext再開
-            render();
-        }
-
-        function toggleHelp() {
-            playTone('tap');
-            state.showHelp = !state.showHelp;
-            render();
-        }
-
+        function toggleSound() { state.isSoundOn = !state.isSoundOn; initAudio(); render(); }
+        function toggleHelp() { playTone('tap'); state.showHelp = !state.showHelp; render(); }
         function openHelp() {
             playTone('tap');
             const user = state.allUsersData[state.currentUserId];
-            if (user) {
-                user.hasReadHelp = true;
-                saveData();
-            }
+            if (user) { user.hasReadHelp = true; saveData(); }
             state.showHelp = true;
             render();
         }
-
-        function selectUser(userId) {
-            playTone('tap');
-            initAudio();
-            state.currentUserId = userId;
-            updateScreen('home');
-        }
-
-        function startEditUser() {
-            playTone('tap');
-            state.editingUser = { name: '', icon: ICON_OPTIONS[0], color: COLOR_OPTIONS[0].class };
-            updateScreen('userEdit');
-        }
-
-        function updateEditingName(val) { 
-            state.editingUser.name = val; 
+        function selectUser(userId) { playTone('tap'); initAudio(); state.currentUserId = userId; updateScreen('home'); }
+        function startEditUser() { playTone('tap'); state.editingUser = { name: '', icon: ICON_OPTIONS[0], color: COLOR_OPTIONS[0].class }; updateScreen('userEdit'); }
+        function updateEditingName(val) {
+            state.editingUser.name = val;
             const btn = document.getElementById('saveUserBtn');
             if (btn) {
-                if (val) {
-                    btn.disabled = false;
-                    btn.classList.remove('bg-slate-300');
-                    btn.classList.add('bg-indigo-500', 'hover:bg-indigo-600', 'shadow-md', 'transform', 'hover:-translate-y-1');
-                } else {
-                    btn.disabled = true;
-                    btn.classList.add('bg-slate-300');
-                    btn.classList.remove('bg-indigo-500', 'hover:bg-indigo-600', 'shadow-md', 'transform', 'hover:-translate-y-1');
-                }
+                if (val) { btn.disabled = false; btn.classList.remove('bg-slate-300'); btn.classList.add('bg-indigo-500', 'hover:bg-indigo-600', 'shadow-md', 'transform', 'hover:-translate-y-1'); }
+                else { btn.disabled = true; btn.classList.add('bg-slate-300'); btn.classList.remove('bg-indigo-500', 'hover:bg-indigo-600', 'shadow-md', 'transform', 'hover:-translate-y-1'); }
             }
         }
         function updateEditingIcon(icon) { state.editingUser.icon = icon; render(); }
         function updateEditingColor(color) { state.editingUser.color = color; render(); }
-
         function saveUserEdit() {
             if (!state.editingUser.name) return;
             playTone('correct');
-            
             if (state.editingUser.id) {
                 state.users = state.users.map(u => u.id === state.editingUser.id ? state.editingUser : u);
             } else {
@@ -1084,28 +1666,527 @@
             saveUsers();
             updateScreen('userSelect');
         }
-
         function deleteUser(userId) {
             if (!confirm('このユーザーと、きろくを さくじょしますか？')) return;
             playTone('remove');
             state.users = state.users.filter(u => u.id !== userId);
             delete state.allUsersData[userId];
-            saveUsers();
-            saveData();
-            render();
+            saveUsers(); saveData(); render();
         }
 
-        function startCategory(catId) {
+        function startCategory(catId) { playTone('tap'); state.wordListCategory = catId; updateScreen('wordList'); }
+        function startCategoryGame(catId) {
             playTone('tap');
             state.currentCategory = catId;
             state.questionIndex = 0;
-            
             state.sessionPerfectWordCount = 0;
             state.sessionErrorWords = [];
-            state.showHint = false; // ★単元開始時にリセット
-            
+            state.showHint = false;
             loadQuestion(catId, 0);
             updateScreen('game');
+        }
+
+        // ★ 単語カードをタップ → 練習モード開始
+        // フェーズ構成：🌟×hintCount → 💪×noHintCount → ✏️なぞり
+        function startWordPractice(catId, wordIndex) {
+            state.wordListCategory = catId;
+            state.practiceWordIndex = wordIndex;
+            state.practicePhase = 0;
+            // てがき画面の状態をリセット
+            state.tracingMode = 'nazori';
+            state.tracingRevealed = false;
+            state.tracingSnapshotUrl = null;
+            state.tracingStrokes = [];
+            const hc = state.settings.hintCount;
+            const nc = state.settings.noHintCount;
+            if (hc === 0 && nc === 0) {
+                // 両方0ならいきなりなぞりへ
+                state.tracingStrokes = [];
+                updateScreen('tracing');
+            } else {
+                loadPracticeQuestion();
+                updateScreen('wordPractice');
+            }
+        }
+
+        function loadPracticeQuestion(autoSpeak = true) {
+            const cat = DATA[state.wordListCategory];
+            const word = cat.words[state.practiceWordIndex];
+            const targetWord = word.en;
+            const letters = targetWord.split('').map((char, i) => ({ char, id: `${char}-${i}-${Math.random()}` }));
+            state.practicePoolLetters = letters.filter(l => l.char !== ' ').sort(() => Math.random() - 0.5);
+            state.practiceAnswerSlots = letters.map(l => l.char === ' ' ? l : null);
+            state.practiceIsCorrect = false;
+            if (autoSpeak) setTimeout(() => speak(targetWord), 300);
+        }
+
+        // ★ 練習フェーズ進行
+        // なぜこうなるか：phaseが totalPhases（hc+nc）に達したらなぞりへ
+        function nextPracticePhase() {
+            state.practicePhase++;
+            const hc = state.settings.hintCount;
+            const nc = state.settings.noHintCount;
+            const totalPhases = hc + nc;
+            if (state.practicePhase < totalPhases) {
+                loadPracticeQuestion(false);
+                updateScreen('wordPractice');
+                const cat = DATA[state.wordListCategory];
+                const word = cat.words[state.practiceWordIndex];
+                setTimeout(() => speak(word.en), 800);
+            } else {
+                // てがき画面へ（状態リセット）
+                state.tracingStrokes = [];
+                state.tracingRevealed = false;
+                state.tracingSnapshotUrl = null;
+                updateScreen('tracing');
+            }
+        }
+
+        function handlePracticePoolClick(letterId) {
+            if (state.practiceIsCorrect) return;
+            const letter = state.practicePoolLetters.find(l => l.id === letterId);
+            if (!letter) return;
+            if (state.practiceAnswerSlots.some(l => l?.id === letter.id)) return;
+            const firstEmptyIndex = state.practiceAnswerSlots.findIndex(slot => slot === null);
+            if (firstEmptyIndex === -1) return;
+            const cat = DATA[state.wordListCategory];
+            const word = cat.words[state.practiceWordIndex];
+            const targetChar = word.en[firstEmptyIndex];
+            if (letter.char !== targetChar) { playTone('error'); } else { playTone('tap'); }
+            state.practiceAnswerSlots[firstEmptyIndex] = letter;
+            renderWordPractice();
+            checkPracticeAnswer();
+        }
+
+        function handlePracticeAnswerClick(index) {
+            if (state.practiceIsCorrect) return;
+            const slot = state.practiceAnswerSlots[index];
+            if (slot && slot.char === ' ') return;
+            playTone('remove');
+            state.practiceAnswerSlots[index] = null;
+            renderWordPractice();
+        }
+
+        function checkPracticeAnswer() {
+            const cat = DATA[state.wordListCategory];
+            const word = cat.words[state.practiceWordIndex];
+            const targetWord = word.en;
+            const currentAnswer = state.practiceAnswerSlots.map(l => l ? l.char : '').join('');
+            if (state.practiceAnswerSlots.every(s => s !== null) && currentAnswer === targetWord) {
+                playTone('correct');
+                state.practiceIsCorrect = true;
+                renderWordPractice();
+                const praiseWords = ["Great!", "Nice!", "Good job!", "Awesome!", "Perfect!", "Well done!"];
+                setTimeout(() => speak(praiseWords[Math.floor(Math.random() * praiseWords.length)]), 300);
+                setTimeout(() => nextPracticePhase(), 1200);
+            }
+        }
+
+        function goBackFromPractice() { updateScreen('wordList'); }
+        function handlePracticeSpeak() {
+            const cat = DATA[state.wordListCategory];
+            const word = cat.words[state.practiceWordIndex];
+            speak(word.en);
+        }
+
+        // なぞりキャンバスの初期化
+        function initTracingCanvas() {
+            const canvas = document.getElementById('tracingCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            // ★ saveTracing 時にキャンバスが DOM から消えても寸法を使えるよう保存
+            state.tracingCanvasW = canvas.width;
+            state.tracingCanvasH = canvas.height;
+            redrawTracing();
+            canvas.addEventListener('touchstart', (e) => { e.preventDefault(); const pt = getTouchPoint(e.touches[0], canvas); state.tracingStrokes.push([pt]); state.isTracingDrawing = true; }, { passive: false });
+            canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (!state.isTracingDrawing) return; state.tracingStrokes[state.tracingStrokes.length - 1].push(getTouchPoint(e.touches[0], canvas)); redrawTracing(); }, { passive: false });
+            canvas.addEventListener('touchend', () => { state.isTracingDrawing = false; });
+            canvas.addEventListener('mousedown', (e) => { state.tracingStrokes.push([getMousePoint(e, canvas)]); state.isTracingDrawing = true; });
+            canvas.addEventListener('mousemove', (e) => { if (!state.isTracingDrawing) return; state.tracingStrokes[state.tracingStrokes.length - 1].push(getMousePoint(e, canvas)); redrawTracing(); });
+            canvas.addEventListener('mouseup', () => { state.isTracingDrawing = false; });
+            canvas.addEventListener('mouseleave', () => { state.isTracingDrawing = false; });
+        }
+
+        function getTouchPoint(touch, canvas) { const rect = canvas.getBoundingClientRect(); return { x: touch.clientX - rect.left, y: touch.clientY - rect.top }; }
+        function getMousePoint(e, canvas) { const rect = canvas.getBoundingClientRect(); return { x: e.clientX - rect.left, y: e.clientY - rect.top }; }
+        function redrawTracing() {
+            const canvas = document.getElementById('tracingCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#3730a3'; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            state.tracingStrokes.forEach(stroke => {
+                if (stroke.length < 2) return;
+                ctx.beginPath(); ctx.moveTo(stroke[0].x, stroke[0].y);
+                for (let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x, stroke[i].y);
+                ctx.stroke();
+            });
+        }
+        function clearTracing() { state.tracingStrokes = []; redrawTracing(); }
+
+        // なぞりを保存して一覧に反映
+        // ★ キャンバスが DOM にない場合（ヒントなし→あってる経由）は保存済みサイズを使う
+        function saveTracing() {
+            const canvas = document.getElementById('tracingCanvas');
+            const cat = DATA[state.wordListCategory];
+            const word = cat.words[state.practiceWordIndex];
+            const lw = 6;
+            const w = canvas ? canvas.width : state.tracingCanvasW;
+            const h = canvas ? canvas.height : state.tracingCanvasH;
+            const paths = state.tracingStrokes.map(stroke => {
+                if (stroke.length < 2) return '';
+                let d = `M ${stroke[0].x.toFixed(1)} ${stroke[0].y.toFixed(1)}`;
+                for (let i = 1; i < stroke.length; i++) d += ` L ${stroke[i].x.toFixed(1)} ${stroke[i].y.toFixed(1)}`;
+                return `<path d="${d}" stroke="#3730a3" stroke-width="${lw.toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+            }).filter(Boolean).join('');
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" style="width:100%;height:100%">${paths}</svg>`;
+            if (state.currentUserId && paths) {
+                saveBestShot(state.currentUserId, word.en, svgData);
+                playTone('complete');
+            }
+            updateScreen('wordList');
+        }
+        function skipTracing() { playTone('tap'); updateScreen('wordList'); }
+
+        // ★ てがきサブモード切り替え
+        // タブをタップするたびにキャンバスをリセットして切り替える
+        function setTracingMode(mode) {
+            playTone('tap');
+            state.tracingMode = mode;
+            state.tracingRevealed = false;
+            state.tracingSnapshotUrl = null;
+            state.tracingStrokes = [];
+            render();
+            // render → renderTracing → setTimeout(initTracingCanvas, 100) が自動で呼ばれる
+        }
+
+        // ★ ヒントなしモード：「かけた！」ボタン
+        // キャンバスの画像を snapshot として保存し、正解表示モードへ
+        function revealTracingAnswer() {
+            playTone('tap');
+            const canvas = document.getElementById('tracingCanvas');
+            state.tracingSnapshotUrl = canvas ? canvas.toDataURL() : null;
+            state.tracingRevealed = true;
+            // 正解のスペルを読み上げ
+            const cat = DATA[state.wordListCategory];
+            const word = cat.words[state.practiceWordIndex];
+            speak(word.en);
+            render();
+        }
+
+        // ★ ヒントなしモード：「なおす」ボタン
+        // キャンバスをリセットしてもう一度書き直す
+        function tracingRetry() {
+            playTone('remove');
+            state.tracingStrokes = [];
+            state.tracingRevealed = false;
+            state.tracingSnapshotUrl = null;
+            render();
+            // render → renderTracing → setTimeout(initTracingCanvas, 100) で自動再初期化
+        }
+
+        // ★ ヒントなしモード：「あってる」ボタン
+        // ストロークは state.tracingStrokes に残っているので saveTracing に流す
+        function tracingCorrect() {
+            saveTracing();
+        }
+
+        // カルタ関連
+        function startKaruta(catId) {
+            playTone('tap');
+            const cat = DATA[catId];
+            const shuffled = [...cat.words].sort(() => Math.random() - 0.5);
+            state.karutaCategory = catId;
+            state.karutaWords = shuffled;
+            state.karutaCleared = [];
+            state.karutaDone = false;
+            state.karutaHint = false;
+            state.karutaCurrentIdx = Math.floor(Math.random() * shuffled.length);
+            updateScreen('karuta');
+        }
+        function karutaReadCurrent() { playTone('tap'); if (state.karutaCurrentIdx >= 0 && !state.karutaDone) speak(state.karutaWords[state.karutaCurrentIdx].en); }
+        function toggleKarutaHint() { playTone('hint'); state.karutaHint = !state.karutaHint; render(); }
+        function launchKarutaParticles() {
+            const colors = ['#f59e0b','#10b981','#6366f1','#ec4899','#f97316','#3b82f6','#a78bfa','#34d399'];
+            for (let i = 0; i < 80; i++) {
+                setTimeout(() => {
+                    const el = document.createElement('div');
+                    el.className = 'karuta-particle';
+                    el.style.left = (Math.random() * 100) + 'vw';
+                    el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    el.style.width = (8 + Math.random() * 10) + 'px';
+                    el.style.height = (8 + Math.random() * 10) + 'px';
+                    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                    const duration = 1.5 + Math.random() * 2;
+                    el.style.animationDuration = duration + 's';
+                    document.body.appendChild(el);
+                    setTimeout(() => el.remove(), duration * 1000 + 100);
+                }, i * 30);
+            }
+        }
+        function karutaTap(idx) {
+            if (state.karutaDone || state.karutaCleared.includes(idx)) return;
+            if (idx === state.karutaCurrentIdx) {
+                playTone('correct');
+                state.karutaCleared.push(idx);
+                const remaining = state.karutaWords.length - state.karutaCleared.length;
+                if (remaining === 0) {
+                    state.karutaDone = true;
+                    render();
+                    setTimeout(() => { playTone('perfect'); launchKarutaParticles(); }, 200);
+                } else {
+                    const unclearedIndices = state.karutaWords.map((_, i) => i).filter(i => !state.karutaCleared.includes(i));
+                    state.karutaCurrentIdx = unclearedIndices[Math.floor(Math.random() * unclearedIndices.length)];
+                    render();
+                    setTimeout(() => speak(state.karutaWords[state.karutaCurrentIdx].en), 600);
+                }
+            } else {
+                playTone('error');
+                const btn = app.querySelectorAll('button[onclick^="karutaTap"]')[idx];
+                if (btn) { btn.classList.add('animate-shake'); setTimeout(() => btn.classList.remove('animate-shake'), 400); }
+            }
+        }
+
+        // テスト関連
+        function startChallengeTest() {
+            playTone('tap');
+            const user = state.allUsersData[state.currentUserId];
+            if (!user || !user.challengeTestWords || user.challengeTestWords.length === 0) return;
+            state.testCategory = 'challenge_test';
+            state.testWords = [...user.challengeTestWords].sort(() => Math.random() - 0.5);
+            state.testWordIndex = 0; state.testRevealed = false; state.testInput = '';
+            state.testStrokes = []; state.testSnapshotUrl = null; state.testResults = [];
+            updateScreen('test');
+        }
+        function startTest(catId) {
+            playTone('tap');
+            const cat = DATA[catId];
+            state.testCategory = catId;
+            state.testWords = [...cat.words].sort(() => Math.random() - 0.5);
+            state.testWordIndex = 0; state.testRevealed = false; state.testInput = '';
+            state.testStrokes = []; state.testSnapshotUrl = null; state.testResults = [];
+            updateScreen('test');
+        }
+        function setTestInputMode(mode) { playTone('tap'); state.testInputMode = mode; state.testInput = ''; state.testStrokes = []; render(); }
+        function testReveal() {
+            if (state.testInputMode === 'canvas') {
+                const canvas = document.getElementById('testCanvas');
+                state.testSnapshotUrl = canvas ? canvas.toDataURL() : null;
+            }
+            state.testRevealed = true;
+            speak(state.testWords[state.testWordIndex].en);
+            render();
+        }
+        function testNext(isCorrect) {
+            playTone(isCorrect ? 'correct' : 'tap');
+            const word = state.testWords[state.testWordIndex];
+            state.testResults.push({ word, correct: isCorrect });
+            if (state.currentUserId) {
+                const user = state.allUsersData[state.currentUserId];
+                if (user) {
+                    if (!user.challengeTestWords) user.challengeTestWords = [];
+                    if (state.testCategory === 'challenge_test') {
+                        if (isCorrect) user.challengeTestWords = user.challengeTestWords.filter(w => w.en !== word.en);
+                    } else {
+                        if (!isCorrect) {
+                            const exists = user.challengeTestWords.some(w => w.en === word.en);
+                            if (!exists) user.challengeTestWords.push(word);
+                        }
+                    }
+                    saveData();
+                }
+            }
+            state.testWordIndex++;
+            state.testRevealed = false; state.testInput = ''; state.testStrokes = []; state.testSnapshotUrl = null;
+            if (state.testWordIndex >= state.testWords.length) { updateScreen('testResult'); } else { render(); }
+        }
+        function initTestCanvas() {
+            const canvas = document.getElementById('testCanvas');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            redrawTestCanvas();
+            const getPos = (e, canvas) => { const r = canvas.getBoundingClientRect(); const src = e.touches ? e.touches[0] : e; return { x: src.clientX - r.left, y: src.clientY - r.top }; };
+            canvas.addEventListener('touchstart', e => { e.preventDefault(); state.testStrokes.push([getPos(e, canvas)]); state.testIsDrawing = true; }, { passive: false });
+            canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!state.testIsDrawing) return; state.testStrokes[state.testStrokes.length - 1].push(getPos(e, canvas)); redrawTestCanvas(); }, { passive: false });
+            canvas.addEventListener('touchend', () => { state.testIsDrawing = false; });
+            canvas.addEventListener('mousedown', e => { state.testStrokes.push([getPos(e, canvas)]); state.testIsDrawing = true; });
+            canvas.addEventListener('mousemove', e => { if (!state.testIsDrawing) return; state.testStrokes[state.testStrokes.length - 1].push(getPos(e, canvas)); redrawTestCanvas(); });
+            canvas.addEventListener('mouseup', () => { state.testIsDrawing = false; });
+            canvas.addEventListener('mouseleave', () => { state.testIsDrawing = false; });
+        }
+        function redrawTestCanvas() {
+            const canvas = document.getElementById('testCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            state.testStrokes.forEach(stroke => {
+                if (stroke.length < 2) return;
+                ctx.beginPath(); ctx.moveTo(stroke[0].x, stroke[0].y);
+                for (let i = 1; i < stroke.length; i++) ctx.lineTo(stroke[i].x, stroke[i].y);
+                ctx.stroke();
+            });
+        }
+        function clearTestCanvas() { state.testStrokes = []; redrawTestCanvas(); }
+
+        // スタンプブック関連
+        function getStamp(stamp) {
+            const user = state.allUsersData[state.currentUserId];
+            if (user.progress[state.currentCategory]) user.progress[state.currentCategory].stamp = stamp;
+            saveData(); playTone('stamp');
+            state.stampBookPage = 1;
+            updateScreen('stampBook');
+        }
+        function setStampBookPage(page) { playTone('tap'); state.stampBookPage = page; render(); }
+        function navigateCalendar(delta) {
+            playTone('tap');
+            state.calendarMonth += delta;
+            if (state.calendarMonth > 11) { state.calendarMonth = 0; state.calendarYear++; }
+            if (state.calendarMonth < 0) { state.calendarMonth = 11; state.calendarYear--; }
+            render();
+        }
+        function goToCalendar() { playTone('tap'); state.stampBookPage = 2; state.calendarYear = new Date().getFullYear(); state.calendarMonth = new Date().getMonth(); updateScreen('stampBook'); }
+        function clearHistory() {
+            if (!confirm('ほんとうに きろくを ぜんぶ けしますか？')) return;
+            state.allUsersData[state.currentUserId].history = [];
+            saveData(); playTone('remove'); render();
+        }
+
+        // フラッシュカード（ゲーム）ロジック
+        function loadQuestion(catId, index) {
+            let cat;
+            if (catId === 'challenge_mode') {
+                cat = { words: state.allUsersData[state.currentUserId].challengeWords || [] };
+            } else {
+                cat = DATA[catId];
+            }
+            const targetWord = cat.words[index].en;
+            const letters = targetWord.split('').map((char, i) => ({ char, id: `${char}-${i}-${Math.random()}` }));
+            state.poolLetters = letters.filter(l => l.char !== ' ').sort(() => Math.random() - 0.5);
+            state.answerSlots = letters.map(l => l.char === ' ' ? l : null);
+            state.isCorrect = false;
+            state.currentWordHadError = false;
+            state.currentWordUsedHint = state.showHint;
+            setTimeout(() => speak(targetWord), 500);
+        }
+
+        function handlePoolClick(letterId) {
+            if (state.isCorrect) return;
+            const letter = state.poolLetters.find(l => l.id === letterId);
+            if (!letter || state.answerSlots.some(l => l?.id === letter.id)) return;
+            const firstEmptyIndex = state.answerSlots.findIndex(slot => slot === null);
+            if (firstEmptyIndex === -1) return;
+            let cat;
+            if (state.currentCategory === 'challenge_mode') { cat = { words: state.allUsersData[state.currentUserId].challengeWords }; } else { cat = DATA[state.currentCategory]; }
+            const targetChar = cat.words[state.questionIndex].en[firstEmptyIndex];
+            if (letter.char !== targetChar) { state.currentWordHadError = true; playTone('error'); } else { playTone('tap'); }
+            state.answerSlots[firstEmptyIndex] = letter;
+            render();
+            checkAnswer();
+        }
+        function handleAnswerClick(index) {
+            if (state.isCorrect) return;
+            const slot = state.answerSlots[index];
+            if (slot && slot.char === ' ') return;
+            playTone('remove');
+            state.answerSlots[index] = null;
+            render();
+        }
+        function toggleHint() {
+            if (!state.showHint) { playTone('hint'); state.showHint = true; state.currentWordUsedHint = true; render(); }
+            else { state.showHint = false; render(); }
+        }
+        function handleSpeak() {
+            let cat;
+            if (state.currentCategory === 'challenge_mode') { cat = { words: state.allUsersData[state.currentUserId].challengeWords }; } else { cat = DATA[state.currentCategory]; }
+            speak(cat.words[state.questionIndex].en);
+        }
+        function checkAnswer() {
+            let cat;
+            if (state.currentCategory === 'challenge_mode') { cat = { words: state.allUsersData[state.currentUserId].challengeWords }; } else { cat = DATA[state.currentCategory]; }
+            const targetWord = cat.words[state.questionIndex].en;
+            const currentAnswer = state.answerSlots.map(l => l ? l.char : '').join('');
+            if (state.answerSlots.every(s => s !== null) && currentAnswer === targetWord) {
+                playTone('correct');
+                state.isCorrect = true;
+                if (!state.currentWordUsedHint && !state.currentWordHadError) {
+                    state.sessionPerfectWordCount++;
+                } else if (!state.currentWordUsedHint && state.currentWordHadError) {
+                    if (state.currentCategory !== 'challenge_mode') {
+                        const alreadyIn = state.sessionErrorWords.some(w => w.en === cat.words[state.questionIndex].en);
+                        if (!alreadyIn) state.sessionErrorWords.push(cat.words[state.questionIndex]);
+                    }
+                }
+                render();
+                setTimeout(() => speak("Great! " + targetWord), 300);
+            }
+        }
+        function nextQuestion() {
+            playTone('tap');
+            let cat;
+            if (state.currentCategory === 'challenge_mode') { cat = { words: state.allUsersData[state.currentUserId].challengeWords }; } else { cat = DATA[state.currentCategory]; }
+            if (state.currentCategory === 'challenge_mode' && state.isCorrect) {
+                if (!state.currentWordUsedHint && !state.currentWordHadError) {
+                    const solvedWordEn = cat.words[state.questionIndex].en;
+                    const user = state.allUsersData[state.currentUserId];
+                    user.challengeWords = user.challengeWords.filter(w => w.en !== solvedWordEn);
+                    state.questionIndex--;
+                    saveData();
+                }
+            }
+            let currentWordsLength = 0;
+            if (state.currentCategory === 'challenge_mode') {
+                currentWordsLength = state.allUsersData[state.currentUserId].challengeWords.length;
+            } else {
+                currentWordsLength = DATA[state.currentCategory].words.length;
+            }
+            if (state.questionIndex + 1 < currentWordsLength) {
+                state.questionIndex++;
+                loadQuestion(state.currentCategory, state.questionIndex);
+                render();
+            } else {
+                let accuracy = currentWordsLength > 0 ? Math.round((state.sessionPerfectWordCount / currentWordsLength) * 100) : 100;
+                const isPass = accuracy >= 90;
+                const isPerfect = accuracy === 100;
+                if (isPerfect) { playTone('perfect'); } else { playTone('complete'); }
+                const now = new Date();
+                const today = now.toLocaleDateString('ja-JP') + ' ' + now.toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
+                const user = state.allUsersData[state.currentUserId];
+                user.history.unshift({ date: today, categoryId: state.currentCategory, isPass });
+                if (user.history.length > HISTORY_LIMIT) user.history = user.history.slice(0, HISTORY_LIMIT);
+                if (state.currentCategory !== 'challenge_mode') {
+                    state.sessionErrorWords.forEach(word => {
+                        const exists = user.challengeWords.some(w => w.en === word.en);
+                        if (!exists) user.challengeWords.push(word);
+                    });
+                }
+                let canGetStamp = false;
+                let gotExtraBadge = false;
+                const catId = state.currentCategory;
+                if (catId !== 'challenge_mode') {
+                    if (!user.progress[catId]) user.progress[catId] = { perfectCount: 0, stamp: null, extraBadgeCount: 0 };
+                    if (user.progress[catId].extraBadgeCount === undefined) user.progress[catId].extraBadgeCount = 0;
+                    if (!user.progress[catId].stamp) {
+                        if (isPass) {
+                            user.progress[catId].perfectCount += 1;
+                            if (user.progress[catId].perfectCount >= 3) { canGetStamp = true; setTimeout(() => playTone('crown'), 1500); }
+                        }
+                    } else {
+                        const MAX_EXTRA_BADGES = 4;
+                        if (isPerfect && user.progress[catId].extraBadgeCount < MAX_EXTRA_BADGES) {
+                            user.progress[catId].extraBadgeCount += 1;
+                            gotExtraBadge = true;
+                            setTimeout(() => playTone('crown'), 500);
+                        }
+                    }
+                }
+                saveData();
+                state.resultInfo = { isPass, score: accuracy, canGetStamp, gotExtraBadge };
+                updateScreen('result');
+            }
         }
 
         function startChallengeMode() {
@@ -1114,290 +2195,29 @@
             state.questionIndex = 0;
             state.sessionPerfectWordCount = 0;
             state.sessionErrorWords = [];
-            state.showHint = false; // ★チャレンジ開始時にリセット
-            
+            state.showHint = false;
             loadQuestion('challenge_mode', 0);
             updateScreen('game');
         }
 
-        function loadQuestion(catId, index) {
-            let cat;
-            if (catId === 'challenge_mode') {
-                const words = state.allUsersData[state.currentUserId].challengeWords || [];
-                cat = { words: words };
-            } else {
-                cat = DATA[catId];
-            }
-
-            const targetWord = cat.words[index].en;
-            
-            const letters = targetWord.split('').map((char, i) => ({ char, id: `${char}-${i}-${Math.random()}` }));
-            state.poolLetters = letters.filter(l => l.char !== ' ').sort(() => Math.random() - 0.5);
-            state.answerSlots = letters.map(l => l.char === ' ' ? l : null);
-            
-            state.isCorrect = false;
-            state.currentWordHadError = false;
-
-            // state.showHint = false; // ★削除：ここを消してヒント状態を維持
-            state.currentWordUsedHint = state.showHint; // ★追加：ヒントがONなら「使用済み」とする
-            
-            setTimeout(() => speak(targetWord), 500);
-        }
-
-        function handlePoolClick(letterId) {
-            if (state.isCorrect) return;
-            const letter = state.poolLetters.find(l => l.id === letterId);
-            if (!letter) return;
-            
-            if (state.answerSlots.some(l => l?.id === letter.id)) return;
-
-            const firstEmptyIndex = state.answerSlots.findIndex(slot => slot === null);
-            if (firstEmptyIndex !== -1) {
-                let cat;
-                if (state.currentCategory === 'challenge_mode') {
-                    cat = { words: state.allUsersData[state.currentUserId].challengeWords };
-                } else {
-                    cat = DATA[state.currentCategory];
-                }
-                const targetChar = cat.words[state.questionIndex].en[firstEmptyIndex];
-                
-                if (letter.char !== targetChar) {
-                    state.currentWordHadError = true; 
-                    playTone('error'); 
-                } else {
-                    playTone('tap');
-                }
-
-                state.answerSlots[firstEmptyIndex] = letter;
-                render();
-                checkAnswer();
-            }
-        }
-
-        function handleAnswerClick(index) {
-            if (state.isCorrect) return;
-            const slot = state.answerSlots[index];
-            if (slot && slot.char === ' ') return;
-            
-            playTone('remove');
-            state.answerSlots[index] = null;
-            render();
-        }
-
-        function toggleHint() {
-            if (!state.showHint) {
-                playTone('hint');
-                state.showHint = true;
-                state.currentWordUsedHint = true; 
-                render();
-            } else {
-                state.showHint = false;
-                render();
-            }
-        }
-
-        function handleSpeak() {
-            let cat;
-            if (state.currentCategory === 'challenge_mode') {
-                cat = { words: state.allUsersData[state.currentUserId].challengeWords };
-            } else {
-                cat = DATA[state.currentCategory];
-            }
-            const word = cat.words[state.questionIndex].en;
-            speak(word);
-        }
-
-        function checkAnswer() {
-            let cat;
-            if (state.currentCategory === 'challenge_mode') {
-                cat = { words: state.allUsersData[state.currentUserId].challengeWords };
-            } else {
-                cat = DATA[state.currentCategory];
-            }
-            const targetWord = cat.words[state.questionIndex].en;
-            const currentAnswer = state.answerSlots.map(l => l ? l.char : '').join('');
-
-            if (state.answerSlots.every(s => s !== null) && currentAnswer === targetWord) {
-                playTone('correct');
-                state.isCorrect = true;
-                
-                if (!state.currentWordUsedHint && !state.currentWordHadError) {
-                    state.sessionPerfectWordCount++;
-                    if (state.currentCategory === 'challenge_mode') {
-                        // nextQuestionで処理
-                    }
-
-                } else if (!state.currentWordUsedHint && state.currentWordHadError) {
-                    if (state.currentCategory !== 'challenge_mode') {
-                        const alreadyIn = state.sessionErrorWords.some(w => w.en === cat.words[state.questionIndex].en);
-                        if (!alreadyIn) {
-                            state.sessionErrorWords.push(cat.words[state.questionIndex]);
-                        }
-                    }
-                }
-
-                render();
-                setTimeout(() => speak("Great! " + targetWord), 300);
-            }
-        }
-
-        function nextQuestion() {
-            playTone('tap');
-            let cat;
-            if (state.currentCategory === 'challenge_mode') {
-                cat = { words: state.allUsersData[state.currentUserId].challengeWords };
-            } else {
-                cat = DATA[state.currentCategory];
-            }
-
-            if (state.currentCategory === 'challenge_mode' && state.isCorrect) {
-                if (!state.currentWordUsedHint && !state.currentWordHadError) {
-                    const solvedWordEn = cat.words[state.questionIndex].en;
-                    const user = state.allUsersData[state.currentUserId];
-                    user.challengeWords = user.challengeWords.filter(w => w.en !== solvedWordEn);
-                    state.questionIndex--; 
-                    saveData();
-                }
-            }
-
-            let currentWordsLength = 0;
-            if (state.currentCategory === 'challenge_mode') {
-                currentWordsLength = state.allUsersData[state.currentUserId].challengeWords.length;
-            } else {
-                currentWordsLength = DATA[state.currentCategory].words.length;
-            }
-
-            if (state.questionIndex + 1 < currentWordsLength) {
-                state.questionIndex++;
-                loadQuestion(state.currentCategory, state.questionIndex);
-                render();
-            } else {
-                // Complete Logic
-                let accuracy = 0;
-                if (currentWordsLength > 0) {
-                     accuracy = Math.round((state.sessionPerfectWordCount / currentWordsLength) * 100);
-                } else {
-                    accuracy = 100;
-                }
-
-                // ★変更：合格ラインと100点満点の判定を分ける
-                const isPass = accuracy >= 90;
-                const isPerfect = accuracy === 100; 
-                
-                if (isPerfect) {
-                    playTone('perfect');
-                } else if (isPass) {
-                    playTone('complete');
-                } else {
-                    playTone('complete');
-                }
-
-                const now = new Date();
-                const today = now.toLocaleDateString('ja-JP') + ' ' + now.toLocaleTimeString('ja-JP', {hour: '2-digit', minute:'2-digit'});
-                const user = state.allUsersData[state.currentUserId];
-                user.history.unshift({ date: today, categoryId: state.currentCategory, isPass });
-                if (user.history.length > HISTORY_LIMIT) user.history = user.history.slice(0, HISTORY_LIMIT);
-
-                if (state.currentCategory !== 'challenge_mode') {
-                    state.sessionErrorWords.forEach(word => {
-                        const exists = user.challengeWords.some(w => w.en === word.en);
-                        if (!exists) {
-                            user.challengeWords.push(word);
-                        }
-                    });
-                }
-                
-                let canGetStamp = false;
-                let gotExtraBadge = false; // ★追加：バッジが増えたかのフラグ
-                const catId = state.currentCategory;
-
-                // ★変更：バッジ追加のロジック
-                if (catId !== 'challenge_mode') {
-                    if (!user.progress[catId]) {
-                        user.progress[catId] = { perfectCount: 0, stamp: null, extraBadgeCount: 0 };
-                    }
-                    if (user.progress[catId].extraBadgeCount === undefined) {
-                        user.progress[catId].extraBadgeCount = 0;
-                    }
-
-                    if (!user.progress[catId].stamp) {
-                        if (isPass) {
-                            user.progress[catId].perfectCount += 1;
-                            if (user.progress[catId].perfectCount >= 3) {
-                                canGetStamp = true;
-                                setTimeout(() => playTone('crown'), 1500); 
-                            }
-                        }
-                    } else {
-                        // 既にスタンプがあり、100点満点の場合（合計5個＝追加分の上限を4とする）
-                        const MAX_EXTRA_BADGES = 4;
-                        if (isPerfect && user.progress[catId].extraBadgeCount < MAX_EXTRA_BADGES) {
-                            user.progress[catId].extraBadgeCount += 1;
-                            gotExtraBadge = true;
-                            setTimeout(() => playTone('crown'), 500); 
-                        }
-                    }
-                }
-                saveData();
-                // ★変更：gotExtraBadge をリザルトに渡す
-                state.resultInfo = { isPass, score: accuracy, canGetStamp, gotExtraBadge };
-                updateScreen('result');
-            }
-        }
-
-        function getStamp(stamp) {
-            const user = state.allUsersData[state.currentUserId];
-            if (user.progress[state.currentCategory]) {
-                user.progress[state.currentCategory].stamp = stamp;
-            }
-            saveData();
-            playTone('stamp');
-            updateScreen('stampBook');
-        }
-
-        function clearHistory() {
-            if (!confirm('ほんとうに きろくを ぜんぶ けしますか？')) return;
-            state.allUsersData[state.currentUserId].history = [];
-            saveData();
-            playTone('remove');
-            render();
-        }
-
-        // --- 7. キーボード入力対応 (Updated for strict case matching) ---
+        // --- 7. キーボード入力対応 ---
         window.addEventListener('keydown', (e) => {
             if (state.screen !== 'game') return;
-            
-            if (state.isCorrect) {
-                if (e.key === 'Enter') {
-                    nextQuestion();
-                }
-                return;
-            }
-
+            if (state.isCorrect) { if (e.key === 'Enter') nextQuestion(); return; }
             if (e.key === 'Backspace') {
                 for (let i = state.answerSlots.length - 1; i >= 0; i--) {
                     const slot = state.answerSlots[i];
-                    if (slot && slot.char !== ' ') {
-                        handleAnswerClick(i); 
-                        return;
-                    }
+                    if (slot && slot.char !== ' ') { handleAnswerClick(i); return; }
                 }
                 return;
             }
-
-            // アルファベット入力 (1文字)
             if (e.key.length === 1 && e.key.match(/[a-zA-Z]/)) {
-                const inputChar = e.key; 
-                
+                const inputChar = e.key;
                 const targetLetter = state.poolLetters.find(l => {
                     const isUsed = state.answerSlots.some(slot => slot?.id === l.id);
-                    // 完全一致で判定 (l.char === inputChar)
                     return !isUsed && l.char === inputChar;
                 });
-
-                if (targetLetter) {
-                    handlePoolClick(targetLetter.id);
-                }
+                if (targetLetter) handlePoolClick(targetLetter.id);
             }
         });
 
